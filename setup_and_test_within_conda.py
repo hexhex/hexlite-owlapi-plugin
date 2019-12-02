@@ -14,6 +14,8 @@ def main():
 	s.run_example('koala')
 
 class Setup:
+	PYTHONVER='3.7'
+
 	def __init__(self):
 		self.config = {}
 
@@ -40,8 +42,8 @@ class Setup:
 		env = self.config['env']
 		assert(env != 'base')
 		self.__run_shell_get_stdout('conda env remove --name %s' % env, allow_fail=True)
-		self.__run_shell_get_stdout('conda create --name %s python=3.7' % env)
-		self.__run_shell_get_stdout('source activate %s' % env)
+		self.__run_shell_get_stdout('conda create --name %s python=%s ant' % (env, self.PYTHONVER))
+		self.__run_shell_get_stdout('conda activate %s' % env)
 
 	def build_jpype(self):
 		logging.info('cloning jpype')
