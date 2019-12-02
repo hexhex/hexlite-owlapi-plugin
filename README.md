@@ -21,3 +21,12 @@ This will
 Be careful:
 * the `<conda-environment>` will be deleted if it exists
 * hexlite will be deleted and cloned anew if it exists
+
+# Development
+
+* In Visual Studio Code, it might be necessary to do
+
+    conda init bash
+    conda init powershell
+
+  for making the setup work.
