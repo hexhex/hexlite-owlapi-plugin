@@ -1,0 +1,14 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Python: Owlapi-Plugin Setup",
+			"type": "python",
+			"request": "launch",
+			"program": "${workspaceRoot}/setup_and_test_within_conda.py",
+			"args": [ "owlapi-test-env" ],
+			"cwd": "${workspaceRoot}/",
+			"console": "integratedTerminal"
+		}
+	]
+}
