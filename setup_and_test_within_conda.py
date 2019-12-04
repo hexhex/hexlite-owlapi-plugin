@@ -42,7 +42,7 @@ class Setup:
 	def recreate_conda_environment(self):
 		env = self.config['env']
 		assert(env != 'base')
-		self.__run_shell_get_stdout('conda env remove --name %s' % env, allow_fail=True)
+		self.__run_shell_get_stdout('conda env remove --name %s >&2' % env, allow_fail=True)
 		self.__run_shell_get_stdout('conda create --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 		#self.__run_shell_get_stdout('source activate %s ; conda install -c potassco clingo' % env)
@@ -50,7 +50,7 @@ class Setup:
 	def build_jpype(self):
 		logging.info('cloning jpype')
 		self.__run_shell_get_stdout("rm -rf jpype")
-		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git && cd jpype && git checkout %s >&2" % self.JPYPE_REF)
+		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git >&2 && cd jpype && git checkout %s >&2" % self.JPYPE_REF)
 		self.__run_shell_get_stdout("cd jpype && python setup.py sdist >&2")
 
 		logging.info('building jpype into conda env')		
@@ -70,16 +70,19 @@ class Setup:
 	def reclone_hexlite(self, ref):
 		logging.info('cloning hexlite')
 		self.__run_shell_get_stdout("rm -rf hexlite")
-		self.__run_shell_get_stdout("git clone https://github.com/hexhex/hexlite.git && cd hexlite && git checkout %s >&2" % ref)
+		self.__run_shell_get_stdout("git clone https://github.com/hexhex/hexlite.git >&2 && cd hexlite && git checkout %s >&2" % ref)
 
 	def build_hexlite_java_api(self):
-		logging.info('building hexlite Java API')
+		logging.info('building and installing hexlite Java API')
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn compile && mvn package >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn compile >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn package >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn install >&2" % env)
 
 	def build_this_plugin(self):
-		pass
-
+		logging.info('building OWLAPI Plugin')
+		env = self.config['env']
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn compile >&2 && mvn package >&2" % env)
 
 logging.basicConfig(level=logging.INFO)
 try:
