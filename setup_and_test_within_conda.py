@@ -6,12 +6,14 @@ def main():
 	s = Setup()
 	s.interpret_arguments(sys.argv)
 	s.ensure_conda_exists()
-	#s.recreate_conda_environment()
-	#s.build_jpype()
-	#s.reclone_hexlite('javapluginapi')
-	#s.build_hexlite_java_api()
+	s.recreate_conda_environment()
+	s.build_jpype()
+	s.reclone_hexlite('javapluginapi')
+	s.build_hexlite_java_api()
+	s.install_hexlite()
 	s.build_this_plugin()
-	s.run_example('koala')
+	s.get_classpath() # this MUST run so that the examples can run
+	s.run_example('koala', 'querykoala1.hex')
 
 class Setup:
 	PYTHONVER='3.7'
@@ -20,10 +22,12 @@ class Setup:
 	def __init__(self):
 		self.config = {}
 
-	@staticmethod
-	def __run_shell_get_stdout(cmd, allow_fail=False):
+	def __run_shell_get_stdout(self, cmd, allow_fail=False):
 		logging.info("running %s", cmd)
-		p = subprocess.Popen('bash -c "%s"' % cmd, shell=True, stdout=subprocess.PIPE, stderr=sys.stderr)
+		env = os.environ.copy()
+		if 'classpath' in self.config:
+			env['CLASSPATH'] = self.config['classpath'] + ':plugin/target/classes/'
+		p = subprocess.Popen('bash -c "%s"' % cmd, env=env, shell=True, stdout=subprocess.PIPE, stderr=sys.stderr)
 		stdout = p.communicate()[0].decode('utf-8')
 		if not allow_fail and p.returncode != 0:
 			raise Exception("failed program: "+cmd)
@@ -79,10 +83,25 @@ class Setup:
 		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn package >&2" % env)
 		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn install >&2" % env)
 
+	def install_hexlite(self):
+		logging.info('installing hexlite')
+		env = self.config['env']
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/ && python setup.py develop --user >&2" % env)
+
 	def build_this_plugin(self):
 		logging.info('building OWLAPI Plugin')
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn compile >&2 && mvn package >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd plugin && mvn compile >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd plugin && mvn package >&2" % env)
+
+	def get_classpath(self):
+		self.config['classpath'] = self.__run_shell_get_stdout("cd plugin && mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q")
+		logging.info("got classpath %s", self.config['classpath'])
+
+	def run_example(self, directory, hexfile):
+		env = self.config['env']
+		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --verbose"
+		self.__run_shell_get_stdout("source activate %s && %s -- %s" % (env, call, os.path.join('examples', directory, hexfile)))
 
 logging.basicConfig(level=logging.INFO)
 try:
