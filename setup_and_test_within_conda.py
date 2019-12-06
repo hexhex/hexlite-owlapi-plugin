@@ -22,12 +22,15 @@ class Setup:
 	def __init__(self):
 		self.config = {}
 
-	def __run_shell_get_stdout(self, cmd, allow_fail=False):
+	def __run_shell_get_stdout(self, cmd, allow_fail=False, wd=None):
 		logging.info("running %s", cmd)
 		env = os.environ.copy()
 		if 'classpath' in self.config:
 			env['CLASSPATH'] = self.config['classpath'] + ':plugin/target/classes/'
-		p = subprocess.Popen('bash -c "%s"' % cmd, env=env, shell=True, stdout=subprocess.PIPE, stderr=sys.stderr)
+		cwd = os.getcwd()
+		if wd is not None:
+			cwd = wd
+		p = subprocess.Popen('bash -c "%s"' % cmd, env=env, cwd=cwd, shell=True, stdout=subprocess.PIPE, stderr=sys.stderr)
 		stdout = p.communicate()[0].decode('utf-8')
 		if not allow_fail and p.returncode != 0:
 			raise Exception("failed program: "+cmd)
@@ -49,7 +52,6 @@ class Setup:
 		self.__run_shell_get_stdout('conda env remove --name %s >&2' % env, allow_fail=True)
 		self.__run_shell_get_stdout('conda create --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
-		#self.__run_shell_get_stdout('source activate %s ; conda install -c potassco clingo' % env)
 
 	def build_jpype(self):
 		logging.info('cloning jpype')
@@ -79,9 +81,7 @@ class Setup:
 	def build_hexlite_java_api(self):
 		logging.info('building and installing hexlite Java API')
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn compile >&2" % env)
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn package >&2" % env)
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn install >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn clean compile package install >&2" % env)
 
 	def install_hexlite(self):
 		logging.info('installing hexlite')
@@ -91,8 +91,7 @@ class Setup:
 	def build_this_plugin(self):
 		logging.info('building OWLAPI Plugin')
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && cd plugin && mvn compile >&2" % env)
-		self.__run_shell_get_stdout("source activate %s && cd plugin && mvn package >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd plugin && mvn clean compile package >&2" % env)
 
 	def get_classpath(self):
 		self.config['classpath'] = self.__run_shell_get_stdout("cd plugin && mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q")

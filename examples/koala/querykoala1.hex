@@ -1,3 +1,4 @@
+#const onto="examples/koala/koala-extended.owl".
 
 % guess couples
 { couple(A,B) } :- &dlCro[onto,"Animal"](A), &dlCro[onto,"Animal"](B), A < B.
@@ -6,4 +7,4 @@
 couple(A,B) :- couple(B,A).
 
 % forbid couples of same gender
-:- couple(A,B), &dlDRro[onto,"hasGender"](A,Gender), &dlCro[onto,"hasGendre"](B,Gender).
+%:- couple(A,B), &dlDRro[onto,"hasGender"](A,Gender), &dlCro[onto,"hasGendre"](B,Gender).
