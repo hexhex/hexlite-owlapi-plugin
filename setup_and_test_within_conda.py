@@ -26,7 +26,9 @@ class Setup:
 		logging.info("running %s", cmd)
 		env = os.environ.copy()
 		if 'classpath' in self.config:
-			env['CLASSPATH'] = self.config['classpath'] + ':plugin/target/classes/'
+			# the first path is for the built plugin
+			# the second path is for the logging configuration
+			env['CLASSPATH'] = self.config['classpath'] + ':plugin/target/classes/:plugin/'
 		cwd = os.getcwd()
 		if wd is not None:
 			cwd = wd

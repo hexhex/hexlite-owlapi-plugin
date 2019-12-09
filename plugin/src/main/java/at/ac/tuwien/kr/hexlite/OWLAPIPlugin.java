@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -37,6 +40,7 @@ interface IPluginContext {
 }
 
 public class OWLAPIPlugin implements IPlugin, IPluginContext {
+    private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPI-Plugin");
 
     private class OntologyContext implements IOntologyContext {
         String _uri;
@@ -132,14 +136,15 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
             System.err.println("in retrieve!");
+            LOGGER.error("in retrieve!");
             String location = withoutQuotes(query.getInput().get(0).value());
             String conceptQuery = withoutQuotes(query.getInput().get(1).value());
-            System.err.println(getPredicate() + " retrieving with ontoURI="+location+" and query '"+conceptQuery+"'");
+            LOGGER.warn(getPredicate() + " retrieving with ontoURI="+location+" and query '"+conceptQuery+"'");
             IOntologyContext oc = ontologyContext(location);
-            System.err.println("got context");
+            LOGGER.info("got context");
 
             final Answer answer = new Answer();
-            System.err.println("creating answer");
+            LOGGER.info("creating answer");
             //final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
             //t.add(ctx.storeConstant(b.toString()));
             //answer.output(t);

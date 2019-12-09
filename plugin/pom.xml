@@ -31,6 +31,22 @@
       <scope>compile</scope>
     </dependency>
     <!-- https://mvnrepository.com/artifact/net.sourceforge.owlapi/owlapi-distribution -->
+    <dependency> 
+      <groupId>org.apache.logging.log4j</groupId> 
+      <artifactId>log4j-api</artifactId> 
+      <version>2.11.1</version> 
+    </dependency> 
+    <dependency> 
+      <groupId>org.apache.logging.log4j</groupId> 
+      <artifactId>log4j-core</artifactId> 
+      <version>2.11.1</version> 
+    </dependency>
+    <!-- slf4j -> log4j2 bridge - for some reason we need that -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <version>2.11.2</version>
+    </dependency>
     <dependency>
         <groupId>net.sourceforge.owlapi</groupId>
         <artifactId>owlapi-distribution</artifactId>
