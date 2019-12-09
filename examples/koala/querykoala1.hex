@@ -1,10 +1,13 @@
-#const onto="examples/koala/koala-extended.owl".
+#const onto="examples/koala/koala-meta.json".
 
 % guess couples
-{ couple(A,B) } :- &dlCro[onto,"Animal"](A), &dlCro[onto,"Animal"](B), A < B.
+{ couple(A,B) } :- &dlCro[onto,"koala:Animal"](A), &dlCro[onto,"koala:Animal"](B), A < B.
 
 % couples are symmetric
 couple(A,B) :- couple(B,A).
 
+#show.
+#show pairing(A,B) : couple(A,B), A < B.
+
 % forbid couples of same gender
-%:- couple(A,B), &dlDRro[onto,"hasGender"](A,Gender), &dlCro[onto,"hasGendre"](B,Gender).
+%:- couple(A,B), &dlDRro[onto,"koala:hasGender"](A,Gender), &dlCro[onto,"koala:hasGender"](B,Gender).

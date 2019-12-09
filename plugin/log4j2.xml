@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="debug" name="Hexlite-OWLAPI-Plugin" packages="">
+<Configuration>
   <Appenders>
-    <Console name="CON" target="SYSTEM_ERR">
-      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    <Console name="CON" target="SYSTEM_ERR">  <!-- where to display -->
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/> <!-- how to display -->
     </Console>
   </Appenders>
   <Loggers>
-    <Root level="info">
+    <Root level="debug"> <!-- the log level to display -->
       <AppenderRef ref="CON"/>
     </Root>
   </Loggers>

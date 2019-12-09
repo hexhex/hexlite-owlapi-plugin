@@ -1,21 +1,30 @@
 package at.ac.tuwien.kr.hexlite;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.ParseException;
+import org.json.simple.parser.JSONParser;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.InferenceType;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
@@ -27,12 +36,14 @@ import at.ac.tuwien.kr.hexlite.api.ExtSourceProperties;
 import at.ac.tuwien.kr.hexlite.api.IPlugin;
 import at.ac.tuwien.kr.hexlite.api.IPluginAtom;
 import at.ac.tuwien.kr.hexlite.api.ISolverContext;
+import at.ac.tuwien.kr.hexlite.api.ISymbol;
 
 interface IOntologyContext {
     public OWLDataFactory df();
     public OWLOntologyManager manager();
     public OWLReasoner reasoner();
     public OWLOntology ontology();
+    public String expandNamespace(String value);
 }
 
 interface IPluginContext {
@@ -40,26 +51,51 @@ interface IPluginContext {
 }
 
 public class OWLAPIPlugin implements IPlugin, IPluginContext {
-    private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPI-Plugin");
+    private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPIPlugin");
 
     private class OntologyContext implements IOntologyContext {
         String _uri;
+        JSONObject _namespaces;
         OWLDataFactory _df;
         OWLOntologyManager _manager;
         OWLOntology _ontology;
         OWLReasonerFactory _reasonerFactory;
         OWLReasoner _reasoner;
 
-        public OntologyContext(String uri) {
+        private String extendURI(final String uri) {
             if( uri.indexOf("://") == -1 ) {
                 if( uri.startsWith("/") ) {
-                    _uri = "file://"+uri;
+                    return "file://"+uri;
                 } else {
-                    _uri = "file://" + System.getProperty("user.dir") + "/" + uri;
+                    return "file://" + System.getProperty("user.dir") + "/" + uri;
                 }
             } else {
-                _uri = uri;
-            }            
+                return uri;
+            }
+        }
+
+        private JSONObject loadMetaFile(final String metafile) {
+            final JSONParser parser = new JSONParser();
+
+            try {
+                return (JSONObject)parser.parse(new FileReader(metafile));
+            } catch(final IOException io) {
+                LOGGER.error("error loading JSON from "+metafile, io);
+            } catch(final ParseException pe) {
+                LOGGER.error("error loading JSON from "+metafile, pe);
+            }
+            return null;
+        }
+
+        public OntologyContext(final String metafile) {
+            final JSONObject meta = loadMetaFile(metafile);
+
+            _uri = extendURI((String)meta.get("load-uri"));
+            if(meta.containsKey("namespaces")) {
+                _namespaces = (JSONObject)meta.get("namespaces");
+            } else {
+                _namespaces = new JSONObject();
+            }
             _df = OWLManager.getOWLDataFactory();
             _manager = OWLManager.createOWLOntologyManager();
             
@@ -69,7 +105,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
             try {
                 _ontology = _manager.loadOntology(IRI.create(_uri));
-            } catch(OWLOntologyCreationException e) {
+            } catch(final OWLOntologyCreationException e) {
                 System.err.println("could not load ontology "+_uri+" with exception "+e.toString());
             }
             _reasonerFactory = new StructuralReasonerFactory();
@@ -81,16 +117,36 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         public OWLOntologyManager manager() { return _manager; }
         public OWLReasoner reasoner() { return _reasoner; }
         public OWLOntology ontology() { return _ontology; }
+        public String namespace(final String key) { return (String)_namespaces.get(key); }
+        public String expandNamespace(final String value) {
+            final int idx = value.indexOf(":");
+            if(idx == -1 || (value.length() > idx && value.charAt(idx+1) == '/') ) {
+                // no namespace
+                return value;
+            } else {
+                final String prefix = value.substring(0,idx);
+                final String suffix = value.substring(idx+1);
+                LOGGER.debug("expandNamespace got prefix "+prefix+" and suffix "+suffix);
+                String ret = value;
+                if(_namespaces.containsKey(prefix)) {
+                    ret = namespace(prefix)+suffix;
+                } else {
+                    LOGGER.warn("encountered unknown prefix "+prefix);
+                }
+                LOGGER.debug("expandNamespace changed "+value+" to "+ret);
+                return ret;
+            }
+        }
     }
 
-    private AbstractMap<String, IOntologyContext> cachedContexts;
+    private final AbstractMap<String, IOntologyContext> cachedContexts;
 
     public OWLAPIPlugin() {
         cachedContexts = new HashMap<String, IOntologyContext>();
     }
 
     @Override
-    public IOntologyContext ontologyContext(String ontolocation) {
+    public IOntologyContext ontologyContext(final String ontolocation) {
         if( !cachedContexts.containsKey(ontolocation) ) {
             cachedContexts.put(ontolocation, new OntologyContext(ontolocation));
         }
@@ -126,7 +182,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             return new ExtSourceProperties();
         }
 
-        private String withoutQuotes(String s) {
+        private String withoutQuotes(final String s) {
             if( s.startsWith("\"") && s.endsWith("\"") )
                 return s.substring(1, s.length()-1);
             else
@@ -135,19 +191,24 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            System.err.println("in retrieve!");
-            LOGGER.error("in retrieve!");
-            String location = withoutQuotes(query.getInput().get(0).value());
-            String conceptQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.warn(getPredicate() + " retrieving with ontoURI="+location+" and query '"+conceptQuery+"'");
-            IOntologyContext oc = ontologyContext(location);
-            LOGGER.info("got context");
+            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            final String conceptQuery = withoutQuotes(query.getInput().get(1).value());
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> conceptQuery);
+            final IOntologyContext oc = ontologyContext(location);
+            final String expandedConceptQuery = oc.expandNamespace(conceptQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedConceptQuery);
 
             final Answer answer = new Answer();
-            LOGGER.info("creating answer");
-            //final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
-            //t.add(ctx.storeConstant(b.toString()));
-            //answer.output(t);
+            final OWLClassExpression classquery = oc.df().getOWLClass(IRI.create(expandedConceptQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> classquery);
+            oc.reasoner().getInstances(classquery, false).entities().forEach( instance -> {
+                LOGGER.debug("found instance {}", () -> instance);
+                final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
+                t.add(ctx.storeConstant(instance.getIRI().toString())); // maybe getShortForm()
+                answer.output(t);
+            });
+            
             return answer;
         }
     }
