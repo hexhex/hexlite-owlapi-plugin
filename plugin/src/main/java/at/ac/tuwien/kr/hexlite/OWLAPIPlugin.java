@@ -8,9 +8,9 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 
 import org.json.simple.JSONObject;
-import org.json.simple.JSONArray;
 import org.json.simple.parser.ParseException;
 import org.json.simple.parser.JSONParser;
 
@@ -21,6 +21,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -44,6 +45,7 @@ interface IOntologyContext {
     public OWLReasoner reasoner();
     public OWLOntology ontology();
     public String expandNamespace(String value);
+    public String simplifyNamespaceIfPossible(String value);
 }
 
 interface IPluginContext {
@@ -55,7 +57,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
     private class OntologyContext implements IOntologyContext {
         String _uri;
-        JSONObject _namespaces;
+        HashMap<String,String> _namespaces;
         OWLDataFactory _df;
         OWLOntologyManager _manager;
         OWLOntology _ontology;
@@ -91,10 +93,22 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             final JSONObject meta = loadMetaFile(metafile);
 
             _uri = extendURI((String)meta.get("load-uri"));
+            _namespaces = new HashMap<String,String>();
             if(meta.containsKey("namespaces")) {
-                _namespaces = (JSONObject)meta.get("namespaces");
-            } else {
-                _namespaces = new JSONObject();
+                JSONObject nsobject = (JSONObject)meta.get("namespaces");
+                for(Object ok : nsobject.keySet()) {
+                    if( ok instanceof String ) {
+                        String k = (String) ok;           
+                        Object ov = nsobject.get(ok);
+                        if( ov instanceof String ) {
+                            _namespaces.put(k, (String)ov);
+                        } else {
+                            LOGGER.error("namespaces must have String values, skipping {} / {}", () -> k, () -> ov);
+                        }
+                    } else {
+                        LOGGER.error("namespaces must have String keys, skipping {}", () -> ok);
+                    }
+                }
             }
             _df = OWLManager.getOWLDataFactory();
             _manager = OWLManager.createOWLOntologyManager();
@@ -117,7 +131,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         public OWLOntologyManager manager() { return _manager; }
         public OWLReasoner reasoner() { return _reasoner; }
         public OWLOntology ontology() { return _ontology; }
-        public String namespace(final String key) { return (String)_namespaces.get(key); }
+        public String namespace(final String key) { return _namespaces.get(key); }
         public String expandNamespace(final String value) {
             final int idx = value.indexOf(":");
             if(idx == -1 || (value.length() > idx && value.charAt(idx+1) == '/') ) {
@@ -137,6 +151,15 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
                 return ret;
             }
         }
+        
+        public String simplifyNamespaceIfPossible(final String value) {
+            for(Map.Entry<String,String> entry : _namespaces.entrySet()) {
+                if(value.startsWith(entry.getValue())) {
+                    return entry.getKey() + ":" + value.substring(entry.getValue().length());
+                }
+            }
+            return value;
+        }
     }
 
     private final AbstractMap<String, IOntologyContext> cachedContexts;
@@ -153,18 +176,27 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         return cachedContexts.get(ontolocation);
     }
 
-    public class DescriptionLogicConceptQueryAtom implements IPluginAtom {
-        private final ArrayList<InputType> inputArguments;
+    public abstract class BaseAtom implements IPluginAtom {
+        private String predicate;
+        private ArrayList<InputType> inputArguments;
+        private int outputArguments;
+        private ExtSourceProperties properties;
 
-        public DescriptionLogicConceptQueryAtom() {
+        public BaseAtom(String _predicate, InputType[] _extraArgumentTypes, int _outputArguments) {
+            // first argument = ontology meta file location
+            predicate = _predicate;
             inputArguments = new ArrayList<InputType>();
             inputArguments.add(InputType.CONSTANT);
-            inputArguments.add(InputType.CONSTANT);            
+            for(InputType arg : _extraArgumentTypes) {
+                inputArguments.add(arg);
+            }
+            outputArguments = _outputArguments;
+            properties = new ExtSourceProperties();
         }
 
         @Override
         public String getPredicate() {
-            return "dlCro";
+            return predicate;
         }
 
         @Override
@@ -174,19 +206,25 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
         @Override
         public int getOutputArguments() {
-            return 1;
+            return outputArguments;
         }
 
         @Override
         public ExtSourceProperties getExtSourceProperties() {
-            return new ExtSourceProperties();
+            return properties;
         }
 
-        private String withoutQuotes(final String s) {
+        protected String withoutQuotes(final String s) {
             if( s.startsWith("\"") && s.endsWith("\"") )
                 return s.substring(1, s.length()-1);
             else
                 return s;
+        }
+    }
+
+    public class ConceptQueryAtom extends BaseAtom {
+        public ConceptQueryAtom() {
+            super("dlCro", new InputType[] { InputType.CONSTANT }, 1);
         }
 
         @Override
@@ -196,18 +234,77 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             final String conceptQuery = withoutQuotes(query.getInput().get(1).value());
             LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> conceptQuery);
             final IOntologyContext oc = ontologyContext(location);
-            final String expandedConceptQuery = oc.expandNamespace(conceptQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedConceptQuery);
+            final String expandedQuery = oc.expandNamespace(conceptQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
             final Answer answer = new Answer();
-            final OWLClassExpression classquery = oc.df().getOWLClass(IRI.create(expandedConceptQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> classquery);
-            oc.reasoner().getInstances(classquery, false).entities().forEach( instance -> {
+            final OWLClassExpression owlquery = oc.df().getOWLClass(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> owlquery);
+            oc.reasoner().getInstances(owlquery, false).entities().forEach( instance -> {
                 LOGGER.debug("found instance {}", () -> instance);
                 final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                 t.add(ctx.storeConstant(instance.getIRI().toString())); // maybe getShortForm()
                 answer.output(t);
             });
+            
+            return answer;
+        }
+    }
+
+    public class DataRoleQueryAtom extends BaseAtom {
+        public DataRoleQueryAtom() {
+            super("dlDRro", new InputType[] { InputType.CONSTANT }, 2);
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            final String dataRoleQuery = withoutQuotes(query.getInput().get(1).value());
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dataRoleQuery);
+            final IOntologyContext oc = ontologyContext(location);
+            final String expandedQuery = oc.expandNamespace(dataRoleQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+
+            final Answer answer = new Answer();
+            final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> op);
+            oc.reasoner().objectPropertyDomains(op)
+                .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
+                .distinct()
+                .forEach( domainindividual -> {
+                    oc.reasoner().objectPropertyValues(domainindividual, op).forEach( value -> {
+                        LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
+                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                        t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
+                        t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
+                        answer.output(t);
+                    });
+                });
+            
+            return answer;
+        }
+    }
+
+    public class SimplifyIRIAtom extends BaseAtom {
+        public SimplifyIRIAtom() {
+            super("dlSimplifyIRI", new InputType[] { InputType.CONSTANT }, 1);
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            final String iri = withoutQuotes(query.getInput().get(1).value());
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> iri);
+            final IOntologyContext oc = ontologyContext(location);
+            final String simplified = oc.simplifyNamespaceIfPossible(iri);
+            LOGGER.debug("simplified to {}", () -> simplified);
+
+            final Answer answer = new Answer();
+            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
+            t.add(ctx.storeConstant(simplified));
+            answer.output(t);
             
             return answer;
         }
@@ -221,7 +318,9 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
     @Override
     public AbstractCollection<IPluginAtom> createAtoms() {
         final LinkedList<IPluginAtom> atoms = new LinkedList<IPluginAtom>();
-        atoms.add(new DescriptionLogicConceptQueryAtom());
-        return atoms;
+        atoms.add(new ConceptQueryAtom());
+        atoms.add(new DataRoleQueryAtom());
+        atoms.add(new SimplifyIRIAtom());
+        return atoms;        
 	}
 }

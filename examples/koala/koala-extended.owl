@@ -27,7 +27,7 @@
     <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#franz -->
 
     <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#franz">
-        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Marsupials"/>
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Animal"/>
         <rdf:type>
             <owl:Class>
                 <owl:complementOf rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Female"/>

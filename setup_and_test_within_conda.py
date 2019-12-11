@@ -101,8 +101,8 @@ class Setup:
 
 	def run_example(self, directory, hexfile):
 		env = self.config['env']
-		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin"
-		#call += ' --verbose'
+		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 10"
+		call += ' --verbose'
 		stdout = self.__run_shell_get_stdout("source activate %s && %s -- %s" % (env, call, os.path.join('examples', directory, hexfile)))
 		sys.stdout.write(stdout)
 
