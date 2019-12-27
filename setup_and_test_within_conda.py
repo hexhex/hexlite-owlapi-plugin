@@ -6,13 +6,18 @@ def main():
 	s = Setup()
 	s.interpret_arguments(sys.argv)
 	s.ensure_conda_exists()
-	# s.recreate_conda_environment()
-	# s.build_jpype()
-	# s.reclone_hexlite('javapluginapi')
-	# s.build_hexlite_java_api()
-	# s.install_hexlite()
+	s.recreate_conda_environment()
+	s.build_jpype()
+	s.reclone_hexlite('javapluginapi')
+	s.build_hexlite_java_api()
+	s.install_hexlite()
 	s.build_this_plugin()
-	s.get_classpath() # this MUST run so that the examples can run
+
+	# either use full classpath provided by maven
+	#s.get_classpath() # this MUST run so that the examples can run
+	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
+	s.config['classpath'] = 'plugin/target/owlapiplugin-1.0-SNAPSHOT.jar'
+
 	s.run_example('koala', 'querykoala1.hex')
 
 class Setup:
