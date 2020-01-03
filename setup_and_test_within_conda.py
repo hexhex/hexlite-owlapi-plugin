@@ -93,7 +93,7 @@ class Setup:
 	def build_hexlite_java_api(self):
 		logging.info('building and installing hexlite Java API')
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/java-api && mvn clean compile package install >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/ && mvn clean compile package install >&2" % env)
 
 	def install_hexlite(self):
 		logging.info('installing hexlite')
