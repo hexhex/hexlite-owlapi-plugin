@@ -23,6 +23,10 @@ def main():
 class Setup:
 	PYTHONVER='3.7'
 	JPYPE_REF='69060be'
+	# for public access
+	#HEXLITE_CLONE_SOURCE='https://github.com/hexhex/hexlite.git'
+	# for developer access (including push possibility)
+	HEXLITE_CLONE_SOURCE='git@github.com:hexhex/hexlite.git'
 
 	def __init__(self):
 		self.config = {}
@@ -84,7 +88,7 @@ class Setup:
 	def reclone_hexlite(self, ref):
 		logging.info('cloning hexlite')
 		self.__run_shell_get_stdout("rm -rf hexlite")
-		self.__run_shell_get_stdout("git clone https://github.com/hexhex/hexlite.git >&2 && cd hexlite && git checkout %s >&2" % ref)
+		self.__run_shell_get_stdout("git clone %s >&2 && cd hexlite && git checkout %s >&2" % (self.HEXLITE_CLONE_SOURCE,ref) )
 
 	def build_hexlite_java_api(self):
 		logging.info('building and installing hexlite Java API')
