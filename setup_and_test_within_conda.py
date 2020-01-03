@@ -61,13 +61,14 @@ class Setup:
 		self.__run_shell_get_stdout('source activate %s' % env)
 
 	def build_jpype(self):
+		env = self.config['env']
+
 		logging.info('cloning jpype')
 		self.__run_shell_get_stdout("rm -rf jpype")
 		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git >&2 && cd jpype && git checkout %s >&2" % self.JPYPE_REF)
-		self.__run_shell_get_stdout("cd jpype && python setup.py sdist >&2")
+		self.__run_shell_get_stdout("source activate %s && cd jpype && python setup.py sdist >&2" % (env,))
 
 		logging.info('building jpype into conda env')		
-		env = self.config['env']
 		# $ is interpreted by outer shell, but we want it to be interpreted by inner shell (the 'bash' started by __run_shell_get_stdout)
 		path = self.__run_shell_get_stdout('source activate %s && echo \\$CONDA_PREFIX' % env).strip()
 		logging.info('got path %s', path)
