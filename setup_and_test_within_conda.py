@@ -22,7 +22,7 @@ def main():
 
 class Setup:
 	PYTHONVER='3.7'
-	JPYPE_REF='69060be'
+	JPYPE_REF='v0.7.1'
 	# for public access
 	#HEXLITE_CLONE_SOURCE='https://github.com/hexhex/hexlite.git'
 	# for developer access (including push possibility)
