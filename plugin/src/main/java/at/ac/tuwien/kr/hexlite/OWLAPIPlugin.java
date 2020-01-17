@@ -55,7 +55,7 @@ interface IPluginContext {
 public class OWLAPIPlugin implements IPlugin, IPluginContext {
     private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPIPlugin");
 
-    private class OntologyContext implements IOntologyContext {
+    private static class OntologyContext implements IOntologyContext {
         String _uri;
         HashMap<String,String> _namespaces;
         OWLDataFactory _df;
@@ -95,11 +95,11 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             _uri = extendURI((String)meta.get("load-uri"));
             _namespaces = new HashMap<String,String>();
             if(meta.containsKey("namespaces")) {
-                JSONObject nsobject = (JSONObject)meta.get("namespaces");
-                for(Object ok : nsobject.keySet()) {
+                final JSONObject nsobject = (JSONObject)meta.get("namespaces");
+                for(final Object ok : nsobject.keySet()) {
                     if( ok instanceof String ) {
-                        String k = (String) ok;           
-                        Object ov = nsobject.get(ok);
+                        final String k = (String) ok;           
+                        final Object ov = nsobject.get(ok);
                         if( ov instanceof String ) {
                             _namespaces.put(k, (String)ov);
                         } else {
@@ -153,7 +153,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
         
         public String simplifyNamespaceIfPossible(final String value) {
-            for(Map.Entry<String,String> entry : _namespaces.entrySet()) {
+            for(final Map.Entry<String,String> entry : _namespaces.entrySet()) {
                 if(value.startsWith(entry.getValue())) {
                     return entry.getKey() + ":" + value.substring(entry.getValue().length());
                 }
@@ -176,18 +176,18 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         return cachedContexts.get(ontolocation);
     }
 
-    public abstract class BaseAtom implements IPluginAtom {
-        private String predicate;
-        private ArrayList<InputType> inputArguments;
-        private int outputArguments;
-        private ExtSourceProperties properties;
+    public static abstract class BaseAtom implements IPluginAtom {
+        private final String predicate;
+        private final ArrayList<InputType> inputArguments;
+        private final int outputArguments;
+        private final ExtSourceProperties properties;
 
-        public BaseAtom(String _predicate, InputType[] _extraArgumentTypes, int _outputArguments) {
+        public BaseAtom(final String _predicate, final InputType[] _extraArgumentTypes, final int _outputArguments) {
             // first argument = ontology meta file location
             predicate = _predicate;
             inputArguments = new ArrayList<InputType>();
             inputArguments.add(InputType.CONSTANT);
-            for(InputType arg : _extraArgumentTypes) {
+            for(final InputType arg : _extraArgumentTypes) {
                 inputArguments.add(arg);
             }
             outputArguments = _outputArguments;
@@ -222,7 +222,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
     }
 
-    public class ConceptQueryAtom extends BaseAtom {
+    public static class ConceptQueryAtom extends BaseAtom {
         public ConceptQueryAtom() {
             super("dlCro", new InputType[] { InputType.CONSTANT }, 1);
         }
@@ -251,7 +251,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
     }
 
-    public class DataRoleQueryAtom extends BaseAtom {
+    public static class DataRoleQueryAtom extends BaseAtom {
         public DataRoleQueryAtom() {
             super("dlDRro", new InputType[] { InputType.CONSTANT }, 2);
         }
@@ -283,6 +283,42 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
                 });
             
             return answer;
+        }
+    }
+
+    public abstract static class ModifiedOntologyBaseAtom extends BaseAtom {
+        private static InputType[] prepareArguments(final InputType[] _extraArgumentTypes) {
+            final ArrayList<InputType> ret = new ArrayList<InputType>();
+            ret.add(InputType.PREDICATE);
+            ret.add(InputType.CONSTANT);
+            for(final InputType arg : _extraArgumentTypes) {
+                ret.add(arg);
+            }
+            return (InputType[])ret.toArray();
+        }
+
+        public ModifiedOntologyBaseAtom(final String _predicate, final InputType[] _extraArgumentTypes) {
+            super(_predicate, prepareArguments(_extraArgumentTypes), 0);
+            // first argument = ontology meta file location (from BaseAtom)
+            // second argument = delta predicate
+            // third argument = delta selector
+            // remaining arguments = _extraArgumentTypes from superclass
+            // no output arguments (=0)
+        }
+    }
+
+    public class ModifiedOntologyConceptQueryAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyConceptQueryAtom() {
+            // dlC[ontospec,deltapredicate,selector,concept,instance]
+            // true iff concept(instance) is entailed by
+            //          the specified ontology after modification by
+            //          the delta in deltapredicate selected by the selector
+            super("dlC", new InputType[] { InputType.CONSTANT, InputType.CONSTANT });
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            // TODO 
         }
     }
 
