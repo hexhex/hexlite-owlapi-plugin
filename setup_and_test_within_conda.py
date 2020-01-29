@@ -14,7 +14,7 @@ def main():
 	s.build_this_plugin()
 
 	# either use full classpath provided by maven
-	#s.get_classpath() # this MUST run so that the examples can run
+	#s.get_classpath()
 	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
 	s.config['classpath'] = 'plugin/target/owlapiplugin-1.0-SNAPSHOT.jar'
 
