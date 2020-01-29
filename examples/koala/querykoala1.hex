@@ -1,16 +1,14 @@
 #const onto="examples/koala/koala-meta.json".
 
-% guess couples
+% guess symmetric couples
 { couple(A,B) } :- &dlCro[onto,"koala:Animal"](A), &dlCro[onto,"koala:Animal"](B), A < B.
-
-% couples are symmetric
 couple(A,B) :- couple(B,A).
 
 % forbid couples of more than 2 people
 :- couple(A,B), couple(B,C), A != C.
 
 % forbid couples of same gender
-:- couple(A,B), &dlDRro[onto,"koala:hasGender"](A,Gender), &dlCro[onto,"koala:hasGender"](B,Gender).
+:- couple(A,B), &dlDRro[onto,"koala:hasGender"](A,Gender), &dlDRro[onto,"koala:hasGender"](B,Gender).
 
 gender(A',G') :- &dlDRro[onto,"koala:hasGender"](A,G), &dlSimplifyIRI[onto,A](A'), &dlSimplifyIRI[onto,G](G').
 
