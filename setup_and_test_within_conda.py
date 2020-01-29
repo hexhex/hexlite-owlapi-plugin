@@ -14,7 +14,7 @@ def main():
 	s.build_this_plugin()
 
 	# either use full classpath provided by maven
-	#s.get_classpath() # this MUST run so that the examples can run
+	#s.get_classpath()
 	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
 	s.config['classpath'] = 'plugin/target/owlapiplugin-1.0-SNAPSHOT.jar'
 
@@ -22,7 +22,6 @@ def main():
 
 class Setup:
 	PYTHONVER='3.7'
-	JPYPE_REF='v0.7.1'
 	# for public access
 	#HEXLITE_CLONE_SOURCE='https://github.com/hexhex/hexlite.git'
 	# for developer access (including push possibility)
@@ -64,12 +63,12 @@ class Setup:
 		self.__run_shell_get_stdout('conda create --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
-	def build_jpype(self):
+	def install_jpype(self, github_ref):
 		env = self.config['env']
 
 		logging.info('cloning jpype')
 		self.__run_shell_get_stdout("rm -rf jpype")
-		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git >&2 && cd jpype && git checkout %s >&2" % self.JPYPE_REF)
+		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git >&2 && cd jpype && git checkout %s >&2" % github_ref)
 		self.__run_shell_get_stdout("source activate %s && cd jpype && python setup.py sdist >&2" % (env,))
 
 		logging.info('building jpype into conda env')		
@@ -85,10 +84,10 @@ class Setup:
 		finally:
 			os.rename(ld_temp, ld_orig) # restore conda env
 
-	def reclone_hexlite(self, ref):
+	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
 		self.__run_shell_get_stdout("rm -rf hexlite")
-		self.__run_shell_get_stdout("git clone %s >&2 && cd hexlite && git checkout %s >&2" % (self.HEXLITE_CLONE_SOURCE,ref) )
+		self.__run_shell_get_stdout("git clone %s >&2 && cd hexlite && git checkout %s >&2" % (self.HEXLITE_CLONE_SOURCE,github_ref) )
 
 	def build_hexlite_java_api(self):
 		logging.info('building and installing hexlite Java API')
@@ -113,6 +112,8 @@ class Setup:
 		env = self.config['env']
 		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 10"
 		call += ' --verbose'
+		# TODO fix bug in flp checker (parser?)
+		call += ' --flpcheck=none'
 		stdout = self.__run_shell_get_stdout("source activate %s && %s -- %s" % (env, call, os.path.join('examples', directory, hexfile)))
 		sys.stdout.write(stdout)
 
