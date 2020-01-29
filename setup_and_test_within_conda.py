@@ -22,7 +22,6 @@ def main():
 
 class Setup:
 	PYTHONVER='3.7'
-	JPYPE_REF='v0.7.1'
 	# for public access
 	#HEXLITE_CLONE_SOURCE='https://github.com/hexhex/hexlite.git'
 	# for developer access (including push possibility)
@@ -64,12 +63,12 @@ class Setup:
 		self.__run_shell_get_stdout('conda create --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
-	def build_jpype(self):
+	def install_jpype(self, github_ref):
 		env = self.config['env']
 
 		logging.info('cloning jpype')
 		self.__run_shell_get_stdout("rm -rf jpype")
-		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git >&2 && cd jpype && git checkout %s >&2" % self.JPYPE_REF)
+		self.__run_shell_get_stdout("git clone https://github.com/jpype-project/jpype.git >&2 && cd jpype && git checkout %s >&2" % github_ref)
 		self.__run_shell_get_stdout("source activate %s && cd jpype && python setup.py sdist >&2" % (env,))
 
 		logging.info('building jpype into conda env')		
@@ -85,10 +84,10 @@ class Setup:
 		finally:
 			os.rename(ld_temp, ld_orig) # restore conda env
 
-	def reclone_hexlite(self, ref):
+	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
 		self.__run_shell_get_stdout("rm -rf hexlite")
-		self.__run_shell_get_stdout("git clone %s >&2 && cd hexlite && git checkout %s >&2" % (self.HEXLITE_CLONE_SOURCE,ref) )
+		self.__run_shell_get_stdout("git clone %s >&2 && cd hexlite && git checkout %s >&2" % (self.HEXLITE_CLONE_SOURCE,github_ref) )
 
 	def build_hexlite_java_api(self):
 		logging.info('building and installing hexlite Java API')
