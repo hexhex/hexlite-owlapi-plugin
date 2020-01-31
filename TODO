@@ -1,0 +1,19 @@
+operations to modify ontology:
+
+&dlC[onto,delta,ID,Concept](Instance)
+
+onto:     CONSTANT ontology meta info string
+delta:    PREDICATE a set of ontology modifications
+ID:       CONSTANT selects one ontology modification
+Concept:  CONSTANT which concept to query
+Instance: CONSTANT instances which are classified as Concept in onto modified by delta[ID]
+
+Modifications are represented as operations in delta(ID,<operation>).
+
+Possible operations:
+
+* addc(Concept,Instance)         assert Concept(Instance)
+* addr(Role,Instance1,Instance2) assert Role(Instance1,Instance2)
+* adddr(Datarole,Instance,Data)  assert Datarole(Instance,Data)
+* delc(.), delr(.), deldr(.)     retract . (arguments as above)
+
