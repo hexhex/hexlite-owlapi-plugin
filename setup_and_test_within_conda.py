@@ -7,7 +7,7 @@ def main():
 	s.interpret_arguments(sys.argv)
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
-	s.build_jpype()
+	s.install_jpype('d864253e7f') # 'v0.7.2'
 	s.reclone_hexlite('javapluginapi')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
