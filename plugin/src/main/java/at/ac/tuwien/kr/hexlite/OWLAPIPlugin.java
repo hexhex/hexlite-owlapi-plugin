@@ -320,8 +320,13 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
+            final IOntologyContext oc = ontologyContext(location);
+            // TODO modify ontology according to delta+selector in base atom
             final Answer answer = new Answer();
-            LOGGER.error("TODO implement");
+            if( oc.reasoner().isConsistent() )
+                answer.output(new ArrayList<ISymbol>());
             return answer;
         }
     }
