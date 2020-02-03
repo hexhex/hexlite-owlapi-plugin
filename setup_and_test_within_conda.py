@@ -13,7 +13,7 @@ def main():
 	s.install_hexlite()
 	s.build_this_plugin()
 
-	# either use full classpath provided by maven
+	# either use full classpath provided by maven (that is slow)
 	#s.get_classpath()
 	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
 	s.config['classpath'] = 'plugin/target/owlapiplugin-1.0-SNAPSHOT.jar'

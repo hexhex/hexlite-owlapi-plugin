@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.json.simple.JSONObject;
@@ -183,7 +185,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         private final int outputArguments;
         private final ExtSourceProperties properties;
 
-        public BaseAtom(final String _predicate, final InputType[] _extraArgumentTypes, final int _outputArguments) {
+        public BaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes, final int _outputArguments) {
             // first argument = ontology meta file location
             predicate = _predicate;
             inputArguments = new ArrayList<InputType>();
@@ -225,7 +227,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
     public class ClassQueryReadOnlyAtom extends BaseAtom {
         public ClassQueryReadOnlyAtom() {
-            super("dlCro", new InputType[] { InputType.CONSTANT }, 1);
+            super("dlCro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 1);
         }
 
         @Override
@@ -254,7 +256,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
     public class ObjectPropertyReadOnlyQueryAtom extends BaseAtom {
         public ObjectPropertyReadOnlyQueryAtom() {
-            super("dlOPro", new InputType[] { InputType.CONSTANT }, 2);
+            super("dlOPro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
         }
 
         @Override
@@ -288,17 +290,16 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
     }
 
     public abstract static class ModifiedOntologyBaseAtom extends BaseAtom {
-        private static InputType[] prepareArguments(final InputType[] _extraArgumentTypes) {
+        private static List<InputType> prepareArguments(final List<InputType> _extraArgumentTypes) {
             final ArrayList<InputType> ret = new ArrayList<InputType>();
             ret.add(InputType.PREDICATE);
             ret.add(InputType.CONSTANT);
-            for(final InputType arg : _extraArgumentTypes) {
-                ret.add(arg);
-            }
-            return (InputType[])ret.toArray();
+            ret.addAll(_extraArgumentTypes);
+            System.err.println("returning "+ret.toString());
+            return ret;
         }
 
-        public ModifiedOntologyBaseAtom(final String _predicate, final InputType[] _extraArgumentTypes) {
+        public ModifiedOntologyBaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes) {
             super(_predicate, prepareArguments(_extraArgumentTypes), 0);
             // first argument = ontology meta file location (from BaseAtom)
             // second argument = delta predicate
@@ -308,13 +309,13 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
     }
 
-    public class ModifiedOntologyConceptQueryAtom extends ModifiedOntologyBaseAtom {
-        public ModifiedOntologyConceptQueryAtom() {
-            // dlC[ontospec,deltapredicate,selector,concept,instance]
-            // true iff concept(instance) is entailed by
-            //          the specified ontology after modification by
+    public class ModifiedOntologyConsistentAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyConsistentAtom() {
+            // dlConsistent[ontospec,deltapredicate,selector]
+            // true iff the specified ontology after modification by
             //          the delta in deltapredicate selected by the selector
-            super("dlC", new InputType[] { InputType.CONSTANT, InputType.CONSTANT });
+            //          is consistent
+            super("dlConsistent", new ArrayList<InputType>());
         }
 
         @Override
@@ -327,7 +328,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
     
     public class DataPropertyReadOnlyQueryAtom extends BaseAtom {
         public DataPropertyReadOnlyQueryAtom() {
-            super("dlDPro", new InputType[] { InputType.CONSTANT }, 2);
+            super("dlDPro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
         }
 
         @Override
@@ -362,7 +363,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
 
     public class SimplifyIRIAtom extends BaseAtom {
         public SimplifyIRIAtom() {
-            super("dlSimplifyIRI", new InputType[] { InputType.CONSTANT }, 1);
+            super("dlSimplifyIRI", Arrays.asList(new InputType[] { InputType.CONSTANT }), 1);
         }
 
         @Override
@@ -395,6 +396,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         atoms.add(new ClassQueryReadOnlyAtom());
         atoms.add(new ObjectPropertyReadOnlyQueryAtom());
         atoms.add(new DataPropertyReadOnlyQueryAtom());
+        atoms.add(new ModifiedOntologyConsistentAtom());
         atoms.add(new SimplifyIRIAtom());
         return atoms;        
 	}

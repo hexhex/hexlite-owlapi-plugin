@@ -21,7 +21,7 @@ delta(hwalt,adddp("koala:isHardWorking",A,"true")) :- makehardworking(A).
 modifications(qalt;rfalt;hwalt).
 
 % require that the result is consistent
-:- not &dlInconsistent[onto,delta,ID], modifications(ID).
+:- not &dlConsistent[onto,delta,ID], modifications(ID).
 
 #show.
 #show delta/2.
