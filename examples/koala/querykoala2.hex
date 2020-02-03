@@ -10,11 +10,11 @@
 delta(qalt,addc("koala:Quokka",A)) :- makequokka(A).
 
 % guess which entity has habitat in the rainforest
-{ makerainforest(T)) } :- &dlCro[onto,"owl:Thing"](T).
+{ makerainforest(T) } :- &dlCro[onto,"owl:Thing"](T).
 delta(rfalt,addop("koala:hasHabitat",T,"koala:Rainforest")) :- makerainforest(T).
 
 % guess which entity is hard-working
-{ makehardworking(T)) } :- &dlCro[onto,"owl:Thing"](T).
+{ makehardworking(T) } :- &dlCro[onto,"owl:Thing"](T).
 delta(hwalt,adddp("koala:isHardWorking",A,"true")) :- makehardworking(A).
 
 % declare which modifications we consider
