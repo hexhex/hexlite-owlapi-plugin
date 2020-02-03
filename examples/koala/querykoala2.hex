@@ -1,0 +1,27 @@
+#const onto="examples/koala/koala-meta.json".
+
+% make 3 alternative ontologies (we test adding assertions of all 3 kinds):
+% * qalt: we check which animals could be quokkas
+% * rfalt: we check which entities could have their habitat in the rain forest
+% * hwalt: we check which entities could be hard working
+
+% guess which animal is a quokka
+{ makequokka(A) } :- &dlCro[onto,"koala:Animal"](A).
+delta(qalt,addc("koala:Quokka",A)) :- makequokka(A).
+
+% guess which entity has habitat in the rainforest
+{ makerainforest(T)) } :- &dlCro[onto,"owl:Thing"](T).
+delta(rfalt,addop("koala:hasHabitat",T,"koala:Rainforest")) :- makerainforest(T).
+
+% guess which entity is hard-working
+{ makehardworking(T)) } :- &dlCro[onto,"owl:Thing"](T).
+delta(hwalt,adddp("koala:isHardWorking",A,"true")) :- makehardworking(A).
+
+% declare which modifications we consider
+modifications(qalt;rfalt;hwalt).
+
+% require that the result is consistent
+:- not &dlInconsistent[onto,delta,ID], modifications(ID).
+
+#show.
+#show delta/2.

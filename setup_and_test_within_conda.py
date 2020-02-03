@@ -19,6 +19,7 @@ def main():
 	s.config['classpath'] = 'plugin/target/owlapiplugin-1.0-SNAPSHOT.jar'
 
 	s.run_example('koala', 'querykoala1.hex')
+	s.run_example('koala', 'querykoala2.hex')
 
 class Setup:
 	PYTHONVER='3.7'

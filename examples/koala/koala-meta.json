@@ -1,6 +1,7 @@
 {
     "load-uri": "examples/koala/koala-extended.owl",
     "namespaces": {
+        "owl": "http://www.w3.org/2002/07/owl#",
         "koala": "http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#",
         "koalaex": "http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#"
     }
