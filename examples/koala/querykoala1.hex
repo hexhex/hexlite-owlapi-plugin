@@ -8,12 +8,16 @@ couple(A,B) :- couple(B,A).
 :- couple(A,B), couple(B,C), A != C.
 
 % forbid couples of same gender
-:- couple(A,B), &dlDRro[onto,"koala:hasGender"](A,Gender), &dlDRro[onto,"koala:hasGender"](B,Gender).
+:- couple(A,B), &dlOPro[onto,"koala:hasGender"](A,Gender), &dlOPro[onto,"koala:hasGender"](B,Gender).
 
-gender(A',G') :- &dlDRro[onto,"koala:hasGender"](A,G), &dlSimplifyIRI[onto,A](A'), &dlSimplifyIRI[onto,G](G').
+gender(A',G') :- &dlOPro[onto,"koala:hasGender"](A,G), &dlSimplifyIRI[onto,A](A'), &dlSimplifyIRI[onto,G](G').
 
 pairing(A',B') :- &dlSimplifyIRI[onto,A](A'), &dlSimplifyIRI[onto,B](B'), couple(A,B), A < B.
+
+% get all hard-working koalas
+praise(A') :- &dlSimplifyIRI[onto,A](A'), &dlCro[onto,"koala:Animal"](A), &dlDPro[onto,"koala:isHardWorking"](A,true).
 
 #show.
 #show pairing/2.
 #show gender/2.
+#show praise/1.

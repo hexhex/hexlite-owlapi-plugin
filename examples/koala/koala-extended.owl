@@ -34,6 +34,7 @@
             </owl:Class>
         </rdf:type>
         <koala:hasChildren rdf:resource="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa"/>
+        <koala:isHardWorking rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</koala:isHardWorking>
     </owl:NamedIndividual>
     
 
@@ -62,6 +63,7 @@
     <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#silvia">
         <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Female"/>
         <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Person"/>
+        <koala:isHardWorking rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</koala:isHardWorking>
     </owl:NamedIndividual>
 </rdf:RDF>
 

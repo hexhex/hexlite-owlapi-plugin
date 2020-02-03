@@ -21,6 +21,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
@@ -222,8 +223,8 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
     }
 
-    public class ConceptQueryAtom extends BaseAtom {
-        public ConceptQueryAtom() {
+    public class ClassQueryReadOnlyAtom extends BaseAtom {
+        public ClassQueryReadOnlyAtom() {
             super("dlCro", new InputType[] { InputType.CONSTANT }, 1);
         }
 
@@ -251,19 +252,19 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
     }
 
-    public class DataRoleQueryAtom extends BaseAtom {
-        public DataRoleQueryAtom() {
-            super("dlDRro", new InputType[] { InputType.CONSTANT }, 2);
+    public class ObjectPropertyReadOnlyQueryAtom extends BaseAtom {
+        public ObjectPropertyReadOnlyQueryAtom() {
+            super("dlOPro", new InputType[] { InputType.CONSTANT }, 2);
         }
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
             LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
-            final String dataRoleQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dataRoleQuery);
+            final String opQuery = withoutQuotes(query.getInput().get(1).value());
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> opQuery);
             final IOntologyContext oc = ontologyContext(location);
-            final String expandedQuery = oc.expandNamespace(dataRoleQuery);
+            final String expandedQuery = oc.expandNamespace(opQuery);
             LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
             final Answer answer = new Answer();
@@ -278,6 +279,41 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
                         t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
                         t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
+                        answer.output(t);
+                    });
+                });
+            
+            return answer;
+        }
+    }
+
+    public class DataPropertyReadOnlyQueryAtom extends BaseAtom {
+        public DataPropertyReadOnlyQueryAtom() {
+            super("dlDPro", new InputType[] { InputType.CONSTANT }, 2);
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            final String dpQuery = withoutQuotes(query.getInput().get(1).value());
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dpQuery);
+            final IOntologyContext oc = ontologyContext(location);
+            final String expandedQuery = oc.expandNamespace(dpQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+
+            final Answer answer = new Answer();
+            final OWLDataProperty dp = oc.df().getOWLDataProperty(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> dp);
+            oc.reasoner().dataPropertyDomains(dp)
+                .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
+                .distinct()
+                .forEach( domainindividual -> {
+                    oc.reasoner().dataPropertyValues(domainindividual, dp).forEach( value -> {
+                        LOGGER.debug("found individual {} related via data property {} to value {}", () -> domainindividual, () -> dp, () -> value);
+                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                        t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
+                        t.add(ctx.storeConstant(value.getLiteral())); // maybe deal with integers/types differently: value.isBoolean value.isInteger
                         answer.output(t);
                     });
                 });
@@ -318,8 +354,9 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
     @Override
     public AbstractCollection<IPluginAtom> createAtoms() {
         final LinkedList<IPluginAtom> atoms = new LinkedList<IPluginAtom>();
-        atoms.add(new ConceptQueryAtom());
-        atoms.add(new DataRoleQueryAtom());
+        atoms.add(new ClassQueryReadOnlyAtom());
+        atoms.add(new ObjectPropertyReadOnlyQueryAtom());
+        atoms.add(new DataPropertyReadOnlyQueryAtom());
         atoms.add(new SimplifyIRIAtom());
         return atoms;        
 	}
