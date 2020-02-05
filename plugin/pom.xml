@@ -59,6 +59,13 @@
         <artifactId>owlapi-distribution</artifactId>
         <version>5.1.12</version>
     </dependency>
+    <dependency>
+      <groupId>net.sourceforge.owlapi</groupId>
+      <artifactId>org.semanticweb.hermit</artifactId>
+      <version>1.4.3.517</version>
+      <!-- <type>bundle</type> -->
+      <!-- <scope>test</scope> -->
+    </dependency>
   </dependencies>
 
   <build>
@@ -122,6 +129,16 @@
         </executions> 
         <configuration>
           <createDependencyReducedPom>false</createDependencyReducedPom>
+          <filters><!-- solve issues with signed JAR (hermit) -->
+              <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                      <exclude>META-INF/*.SF</exclude>
+                      <exclude>META-INF/*.DSA</exclude>
+                      <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+              </filter>
+          </filters>
         </configuration>
       </plugin> 
     </plugins>

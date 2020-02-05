@@ -3,29 +3,22 @@ package at.ac.tuwien.kr.hexlite;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.AbstractCollection;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.change.AddClassExpressionClosureAxiom;
 import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLDataProperty;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -131,9 +124,14 @@ class OntologyContext implements IOntologyContext {
 
    public OWLReasoner reasoner() {
        if( _reasoner == null ) {
-           OWLReasonerFactory rf = new StructuralReasonerFactory();
-           _reasoner = rf.createNonBufferingReasoner(_ontology);
-           _reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+           //OWLReasonerFactory rf = new StructuralReasonerFactory();
+           //_reasoner = rf.createNonBufferingReasoner(_ontology);
+           //_reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+           org.semanticweb.HermiT.Configuration cfg = new org.semanticweb.HermiT.Configuration();
+    _reasoner = new org.semanticweb.HermiT.Reasoner(cfg, _ontology);
+    //_reasoner = new org.semanticweb.HermiT.Reasoner.ReasonerFactory().createReasoner(_ontology);
+        _reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+           LOGGER.warn("created hermit which is consistent:" +_reasoner.isConsistent());
        }
        return _reasoner;
    }
@@ -176,34 +174,40 @@ class OntologyContext implements IOntologyContext {
    }
 
    public static class AddClassAssertionAxiomOntologyModification implements IOntologyModification {
-       private final IRI classIRI;
-       private final IRI instanceIRI;
+       private final IRI _classIRI;
+       private final IRI _instanceIRI;
 
-       public AddClassAssertionAxiomOntologyModification(final IRI _classIRI, final IRI _instanceIRI) {
-           classIRI = _classIRI;
-           instanceIRI = _instanceIRI;
+       public AddClassAssertionAxiomOntologyModification(final IRI classIRI, final IRI instanceIRI) {
+           _classIRI = classIRI;
+           _instanceIRI = instanceIRI;
        }
 
        @Override
        public void apply(final IOntologyContext ctx) {
-           ctx.ontology().addAxiom(
+           LOGGER.info("applying "+toString()+" to "+ctx.ontology()+"!");
+           org.semanticweb.owlapi.model.parameters.ChangeApplied ca = ctx.ontology().addAxiom(
                ctx.df().getOWLClassAssertionAxiom(
-                   ctx.df().getOWLClass(classIRI),
-                   ctx.df().getOWLNamedIndividual(instanceIRI)));
+                   ctx.df().getOWLClass(_classIRI),
+                   ctx.df().getOWLNamedIndividual(_instanceIRI)));
+           LOGGER.info("  -> "+ca);
        }
 
-       // public String toString() {
-
-       // }
+       @Override
+       public String toString() {
+           return "+["+_classIRI+"("+_instanceIRI+")]";
+       }
    }
    // TODO: add further implementations for various purposes
 
    @Override
    public IOntologyContext modifiedCopy(final Collection<? extends IOntologyModification> operations) {
        IOntologyContext ret = new OntologyContext(this);
+//       OWLReasoner r = reasoner();
+//       LOGGER.info("before modification: reasoner is consistent "+r.isConsistent());
        for( IOntologyModification mod : operations ) {
            mod.apply(ret);
        }
+//       LOGGER.info("after modification: reasoner is consistent "+r.isConsistent());
        return ret;
    }
 }
