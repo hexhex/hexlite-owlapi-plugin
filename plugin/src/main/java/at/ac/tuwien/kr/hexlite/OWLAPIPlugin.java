@@ -112,27 +112,21 @@ public class OWLAPIPlugin implements IPlugin {
             } catch (final OWLOntologyCreationException e) {
                 System.err.println("could not load ontology " + _uri + " with exception " + e.toString());
             }
-            initializeReasoner();
+            _reasoner = null;
         }
 
         private OntologyContext(OntologyContext original) {
             _uri = original._uri;
             _namespaces = original._namespaces;
             _df = original._df;
-            _manager = original._manager;
+            _manager = OWLManager.createOWLOntologyManager();
             // TODO: shallow copy sufficient?
             try {
                 _ontology = _manager.copyOntology(original._ontology, OntologyCopy.SHALLOW);
             } catch (final OWLOntologyCreationException e) {
                 System.err.println("could not copy ontology " + _uri + " with exception " + e.toString());
             }
-            initializeReasoner();
-        }
-
-        private void initializeReasoner() {
-            OWLReasonerFactory rf = new StructuralReasonerFactory();
-            _reasoner = rf.createNonBufferingReasoner(_ontology);
-            _reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+            _reasoner = null;
         }
 
         public OWLDataFactory df() {
@@ -144,6 +138,11 @@ public class OWLAPIPlugin implements IPlugin {
         }
 
         public OWLReasoner reasoner() {
+            if( _reasoner == null ) {
+                OWLReasonerFactory rf = new StructuralReasonerFactory();
+                _reasoner = rf.createNonBufferingReasoner(_ontology);
+                _reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+            }
             return _reasoner;
         }
 
