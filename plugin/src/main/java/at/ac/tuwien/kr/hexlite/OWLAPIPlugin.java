@@ -7,19 +7,20 @@ import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
-import org.json.simple.parser.JSONParser;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.change.AddClassExpressionClosureAxiom;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -28,12 +29,12 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
-import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.InferenceType;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.reasoner.structural.StructuralReasonerFactory;
 import org.semanticweb.owlapi.util.AutoIRIMapper;
+import org.semanticweb.owlapi.model.parameters.OntologyCopy;
 
 import at.ac.tuwien.kr.hexlite.api.Answer;
 import at.ac.tuwien.kr.hexlite.api.ExtSourceProperties;
@@ -42,35 +43,21 @@ import at.ac.tuwien.kr.hexlite.api.IPluginAtom;
 import at.ac.tuwien.kr.hexlite.api.ISolverContext;
 import at.ac.tuwien.kr.hexlite.api.ISymbol;
 
-interface IOntologyContext {
-    public OWLDataFactory df();
-    public OWLOntologyManager manager();
-    public OWLReasoner reasoner();
-    public OWLOntology ontology();
-    public String expandNamespace(String value);
-    public String simplifyNamespaceIfPossible(String value);
-}
-
-interface IPluginContext {
-    public IOntologyContext ontologyContext(String ontolocation);
-}
-
-public class OWLAPIPlugin implements IPlugin, IPluginContext {
+public class OWLAPIPlugin implements IPlugin {
     private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPIPlugin");
 
     private static class OntologyContext implements IOntologyContext {
         String _uri;
-        HashMap<String,String> _namespaces;
+        HashMap<String, String> _namespaces;
         OWLDataFactory _df;
         OWLOntologyManager _manager;
         OWLOntology _ontology;
-        OWLReasonerFactory _reasonerFactory;
         OWLReasoner _reasoner;
 
         private String extendURI(final String uri) {
-            if( uri.indexOf("://") == -1 ) {
-                if( uri.startsWith("/") ) {
-                    return "file://"+uri;
+            if (uri.indexOf("://") == -1) {
+                if (uri.startsWith("/")) {
+                    return "file://" + uri;
                 } else {
                     return "file://" + System.getProperty("user.dir") + "/" + uri;
                 }
@@ -83,11 +70,11 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             final JSONParser parser = new JSONParser();
 
             try {
-                return (JSONObject)parser.parse(new FileReader(metafile));
-            } catch(final IOException io) {
-                LOGGER.error("error loading JSON from "+metafile, io);
-            } catch(final ParseException pe) {
-                LOGGER.error("error loading JSON from "+metafile, pe);
+                return (JSONObject) parser.parse(new FileReader(metafile));
+            } catch (final IOException io) {
+                LOGGER.error("error loading JSON from " + metafile, io);
+            } catch (final ParseException pe) {
+                LOGGER.error("error loading JSON from " + metafile, pe);
             }
             return null;
         }
@@ -95,16 +82,16 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         public OntologyContext(final String metafile) {
             final JSONObject meta = loadMetaFile(metafile);
 
-            _uri = extendURI((String)meta.get("load-uri"));
-            _namespaces = new HashMap<String,String>();
-            if(meta.containsKey("namespaces")) {
-                final JSONObject nsobject = (JSONObject)meta.get("namespaces");
-                for(final Object ok : nsobject.keySet()) {
-                    if( ok instanceof String ) {
-                        final String k = (String) ok;           
+            _uri = extendURI((String) meta.get("load-uri"));
+            _namespaces = new HashMap<String, String>();
+            if (meta.containsKey("namespaces")) {
+                final JSONObject nsobject = (JSONObject) meta.get("namespaces");
+                for (final Object ok : nsobject.keySet()) {
+                    if (ok instanceof String) {
+                        final String k = (String) ok;
                         final Object ov = nsobject.get(ok);
-                        if( ov instanceof String ) {
-                            _namespaces.put(k, (String)ov);
+                        if (ov instanceof String) {
+                            _namespaces.put(k, (String) ov);
                         } else {
                             LOGGER.error("namespaces must have String values, skipping {} / {}", () -> k, () -> ov);
                         }
@@ -115,53 +102,118 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             }
             _df = OWLManager.getOWLDataFactory();
             _manager = OWLManager.createOWLOntologyManager();
-            
+
             // make dependency ontologies auto-loadable from current directory
             final File file = new File(System.getProperty("user.dir"));
             _manager.getIRIMappers().add(new AutoIRIMapper(file, true));
 
             try {
                 _ontology = _manager.loadOntology(IRI.create(_uri));
-            } catch(final OWLOntologyCreationException e) {
-                System.err.println("could not load ontology "+_uri+" with exception "+e.toString());
+            } catch (final OWLOntologyCreationException e) {
+                System.err.println("could not load ontology " + _uri + " with exception " + e.toString());
             }
-            _reasonerFactory = new StructuralReasonerFactory();
-            _reasoner = _reasonerFactory.createNonBufferingReasoner(_ontology);
+            initializeReasoner();
+        }
+
+        private OntologyContext(OntologyContext original) {
+            _uri = original._uri;
+            _namespaces = original._namespaces;
+            _df = original._df;
+            _manager = original._manager;
+            // TODO: shallow copy sufficient?
+            try {
+                _ontology = _manager.copyOntology(original._ontology, OntologyCopy.SHALLOW);
+            } catch (final OWLOntologyCreationException e) {
+                System.err.println("could not copy ontology " + _uri + " with exception " + e.toString());
+            }
+            initializeReasoner();
+        }
+
+        private void initializeReasoner() {
+            OWLReasonerFactory rf = new StructuralReasonerFactory();
+            _reasoner = rf.createNonBufferingReasoner(_ontology);
             _reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
         }
 
-        public OWLDataFactory df() { return _df; }
-        public OWLOntologyManager manager() { return _manager; }
-        public OWLReasoner reasoner() { return _reasoner; }
-        public OWLOntology ontology() { return _ontology; }
-        public String namespace(final String key) { return _namespaces.get(key); }
+        public OWLDataFactory df() {
+            return _df;
+        }
+
+        public OWLOntologyManager manager() {
+            return _manager;
+        }
+
+        public OWLReasoner reasoner() {
+            return _reasoner;
+        }
+
+        public OWLOntology ontology() {
+            return _ontology;
+        }
+
+        public String namespace(final String key) {
+            return _namespaces.get(key);
+        }
+
         public String expandNamespace(final String value) {
             final int idx = value.indexOf(":");
-            if(idx == -1 || (value.length() > idx && value.charAt(idx+1) == '/') ) {
+            if (idx == -1 || (value.length() > idx && value.charAt(idx + 1) == '/')) {
                 // no namespace
                 return value;
             } else {
-                final String prefix = value.substring(0,idx);
-                final String suffix = value.substring(idx+1);
-                LOGGER.debug("expandNamespace got prefix "+prefix+" and suffix "+suffix);
+                final String prefix = value.substring(0, idx);
+                final String suffix = value.substring(idx + 1);
+                LOGGER.debug("expandNamespace got prefix " + prefix + " and suffix " + suffix);
                 String ret = value;
-                if(_namespaces.containsKey(prefix)) {
-                    ret = namespace(prefix)+suffix;
+                if (_namespaces.containsKey(prefix)) {
+                    ret = namespace(prefix) + suffix;
                 } else {
-                    LOGGER.warn("encountered unknown prefix "+prefix);
+                    LOGGER.warn("encountered unknown prefix " + prefix);
                 }
-                LOGGER.debug("expandNamespace changed "+value+" to "+ret);
+                LOGGER.debug("expandNamespace changed " + value + " to " + ret);
                 return ret;
             }
         }
-        
+
         public String simplifyNamespaceIfPossible(final String value) {
-            for(final Map.Entry<String,String> entry : _namespaces.entrySet()) {
-                if(value.startsWith(entry.getValue())) {
+            for (final Map.Entry<String, String> entry : _namespaces.entrySet()) {
+                if (value.startsWith(entry.getValue())) {
                     return entry.getKey() + ":" + value.substring(entry.getValue().length());
                 }
             }
             return value;
+        }
+
+        public static class AddClassAssertionAxiomOntologyModification implements IOntologyModification {
+            private final IRI classIRI;
+            private final IRI instanceIRI;
+
+            public AddClassAssertionAxiomOntologyModification(final IRI _classIRI, final IRI _instanceIRI) {
+                classIRI = _classIRI;
+                instanceIRI = _instanceIRI;
+            }
+
+            @Override
+            public void apply(final IOntologyContext ctx) {
+                ctx.ontology().addAxiom(
+                    ctx.df().getOWLClassAssertionAxiom(
+                        ctx.df().getOWLClass(classIRI),
+                        ctx.df().getOWLNamedIndividual(instanceIRI)));
+            }
+
+            // public String toString() {
+
+            // }
+        }
+        // TODO: add further implementations for various purposes
+
+        @Override
+        public IOntologyContext modifiedCopy(final Collection<? extends IOntologyModification> operations) {
+            IOntologyContext ret = new OntologyContext(this);
+            for( IOntologyModification mod : operations ) {
+                mod.apply(ret);
+            }
+            return ret;
         }
     }
 
@@ -171,9 +223,9 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         cachedContexts = new HashMap<String, IOntologyContext>();
     }
 
-    @Override
+    // @Override
     public IOntologyContext ontologyContext(final String ontolocation) {
-        if( !cachedContexts.containsKey(ontolocation) ) {
+        if (!cachedContexts.containsKey(ontolocation)) {
             cachedContexts.put(ontolocation, new OntologyContext(ontolocation));
         }
         return cachedContexts.get(ontolocation);
@@ -185,12 +237,13 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         private final int outputArguments;
         private final ExtSourceProperties properties;
 
-        public BaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes, final int _outputArguments) {
+        public BaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes,
+                final int _outputArguments) {
             // first argument = ontology meta file location
             predicate = _predicate;
             inputArguments = new ArrayList<InputType>();
             inputArguments.add(InputType.CONSTANT);
-            for(final InputType arg : _extraArgumentTypes) {
+            for (final InputType arg : _extraArgumentTypes) {
                 inputArguments.add(arg);
             }
             outputArguments = _outputArguments;
@@ -218,8 +271,8 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
         }
 
         protected String withoutQuotes(final String s) {
-            if( s.startsWith("\"") && s.endsWith("\"") )
-                return s.substring(1, s.length()-1);
+            if (s.startsWith("\"") && s.endsWith("\""))
+                return s.substring(1, s.length() - 1);
             else
                 return s;
         }
@@ -235,7 +288,8 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
             final String conceptQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> conceptQuery);
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location,
+                    () -> conceptQuery);
             final IOntologyContext oc = ontologyContext(location);
             final String expandedQuery = oc.expandNamespace(conceptQuery);
             LOGGER.debug("expanded query to {}", () -> expandedQuery);
@@ -243,13 +297,13 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             final Answer answer = new Answer();
             final OWLClassExpression owlquery = oc.df().getOWLClass(IRI.create(expandedQuery));
             LOGGER.debug("querying ontology with expression {}", () -> owlquery);
-            oc.reasoner().getInstances(owlquery, false).entities().forEach( instance -> {
+            oc.reasoner().getInstances(owlquery, false).entities().forEach(instance -> {
                 LOGGER.debug("found instance {}", () -> instance);
                 final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                 t.add(ctx.storeConstant(instance.getIRI().toString())); // maybe getShortForm()
                 answer.output(t);
             });
-            
+
             return answer;
         }
     }
@@ -264,7 +318,8 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
             final String opQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> opQuery);
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location,
+                    () -> opQuery);
             final IOntologyContext oc = ontologyContext(location);
             final String expandedQuery = oc.expandNamespace(opQuery);
             LOGGER.debug("expanded query to {}", () -> expandedQuery);
@@ -272,19 +327,18 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             final Answer answer = new Answer();
             final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
             LOGGER.debug("querying ontology with expression {}", () -> op);
-            oc.reasoner().objectPropertyDomains(op)
-                .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
-                .distinct()
-                .forEach( domainindividual -> {
-                    oc.reasoner().objectPropertyValues(domainindividual, op).forEach( value -> {
-                        LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
-                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                        t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
-                        t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
-                        answer.output(t);
+            oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
+                    .distinct().forEach(domainindividual -> {
+                        oc.reasoner().objectPropertyValues(domainindividual, op).forEach(value -> {
+                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
+                                    () -> op, () -> value);
+                            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                            t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
+                            t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
+                            answer.output(t);
+                        });
                     });
-                });
-            
+
             return answer;
         }
     }
@@ -295,7 +349,7 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             ret.add(InputType.PREDICATE);
             ret.add(InputType.CONSTANT);
             ret.addAll(_extraArgumentTypes);
-            System.err.println("returning "+ret.toString());
+            System.err.println("returning " + ret.toString());
             return ret;
         }
 
@@ -306,6 +360,15 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             // third argument = delta selector
             // remaining arguments = _extraArgumentTypes from superclass
             // no output arguments (=0)
+        }
+
+        public List<IOntologyModification> extractModifications(Set<? extends List<ISymbol>> delta_ext, ISymbol delta_sel) {
+            final List<IOntologyModification> ret = new ArrayList<IOntologyModification>(10);
+            ret.add(new OntologyContext.AddClassAssertionAxiomOntologyModification(
+                IRI.create("koala", "Marsupial"),
+                IRI.create("koalaex", "Silvia")
+            ));
+            return ret;
         }
     }
 
@@ -323,9 +386,12 @@ public class OWLAPIPlugin implements IPlugin, IPluginContext {
             final String location = withoutQuotes(query.getInput().get(0).value());
             LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
             final IOntologyContext oc = ontologyContext(location);
-            // TODO modify ontology according to delta+selector in base atom
+            final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
+            final ISymbol delta_sel = query.getInput().get(2);
+            final List<? extends IOntologyModification> modifications = extractModifications(delta_ext, delta_sel);
+            final IOntologyContext moc = oc.modifiedCopy(modifications);
             final Answer answer = new Answer();
-            if( oc.reasoner().isConsistent() )
+            if( moc.reasoner().isConsistent() )
                 answer.output(new ArrayList<ISymbol>());
             return answer;
         }

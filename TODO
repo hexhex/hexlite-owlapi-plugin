@@ -1,4 +1,4 @@
-operations to modify ontology:
+# Implement operations to modify ontology:
 
 &dlC[onto,delta,ID,Class](Instance)
 
@@ -17,3 +17,8 @@ Possible operations:
 * adddp(Datarole,Instance,Data)   assert DataProperty(Instance,Data)
 * delc(.), delop(.), deldp(.)     retract . (arguments as above)
 
+# Smaller TODOs
+
+* move plugin to package hexlite.plugin.owlapi
+* change HashSet to Set in interfaces, ArrayList to List, etc.
+  add ? extends and ? super where necessary (Producer Extends Consumer Super)
