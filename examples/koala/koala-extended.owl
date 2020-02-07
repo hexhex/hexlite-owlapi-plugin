@@ -51,7 +51,7 @@
     <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa -->
 
     <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa">
-        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Person"/>
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Marsupials"/>
         <koala:hasChildren rdf:resource="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#leo"/>
         <koala:hasGender rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#female"/>
     </owl:NamedIndividual>
@@ -61,8 +61,8 @@
     <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#silvia -->
 
     <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#silvia">
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Animal"/>
         <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Female"/>
-        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Person"/>
         <koala:isHardWorking rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</koala:isHardWorking>
     </owl:NamedIndividual>
 </rdf:RDF>

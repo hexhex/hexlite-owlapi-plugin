@@ -122,7 +122,7 @@ class OntologyContext implements IOntologyContext {
    }
 
    public OWLReasoner reasoner() {
-       if( true || _reasoner == null ) {
+       if( _reasoner == null ) {
            // this reasoner is not sufficient
            //OWLReasonerFactory rf = new StructuralReasonerFactory();
            //_reasoner = rf.createNonBufferingReasoner(_ontology);
@@ -192,6 +192,8 @@ class OntologyContext implements IOntologyContext {
     public void applyChanges(List<? extends OWLOntologyChange> changes) {
         ChangeApplied ca = _manager.applyChanges(changes);
         LOGGER.info("applyChange "+ca+" for "+changes.toString());
+        // invalidate reasoner
+        _reasoner = null;
     }
     public void revertChanges(List<? extends OWLOntologyChange> changes) {
         List<OWLOntologyChange> reversed = new ArrayList<OWLOntologyChange>(changes.size());
@@ -200,5 +202,7 @@ class OntologyContext implements IOntologyContext {
         }
         ChangeApplied ca = _manager.applyChanges(reversed);
         LOGGER.info("revertChange "+ca+" for "+changes.toString());
+        // invalidate reasoner
+        _reasoner = null;
     }
 }

@@ -7,7 +7,7 @@
 
 % guess which animal is a quokka
 { makequokka(A) } :- &dlCro[onto,"koala:Animal"](A), not &dlCro[onto,"koala:Person"](A).
-delta(qalt,addc("koala:Quokka",A)) :- makequokka(A).
+delta(qalt,addc("koala:TasmanianDevil",A)) :- makequokka(A).
 
 % guess which entity has habitat in the rainforest
 %{ makerainforest(T) } :- &dlCro[onto,"koala:Animal"](T).

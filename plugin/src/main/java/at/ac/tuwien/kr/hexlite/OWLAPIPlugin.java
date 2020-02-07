@@ -229,14 +229,10 @@ public class OWLAPIPlugin implements IPlugin {
             oc.applyChanges(modifications);
 
             final Answer answer = new Answer();
-            String verdict = "inconsistent";
             OWLReasoner reasoner = oc.reasoner();
-            //LOGGER.info("reasoner is "+reasoner.toString());
             if( reasoner.isConsistent() ) {
                 answer.output(new ArrayList<ISymbol>());
-                verdict = "consistent";
             }
-            LOGGER.info("retrieve() with modifications "+modifications.toString()+" is "+verdict);
 
             oc.revertChanges(modifications);
 
