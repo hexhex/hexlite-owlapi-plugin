@@ -17,6 +17,8 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntologyChange;
+import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import at.ac.tuwien.kr.hexlite.api.Answer;
@@ -174,8 +176,8 @@ public class OWLAPIPlugin implements IPlugin {
             // no output arguments (=0)
         }
 
-        public List<IOntologyModification> extractModifications(IOntologyContext ctx, Set<? extends List<ISymbol>> delta_ext, ISymbol delta_sel) {
-            final List<IOntologyModification> ret = new ArrayList<IOntologyModification>(10);
+        public List<OWLOntologyChange> extractModifications(IOntologyContext ctx, Set<? extends List<ISymbol>> delta_ext, ISymbol delta_sel) {
+            final List<OWLOntologyChange> ret = new ArrayList<OWLOntologyChange>(10);
             for(List<ISymbol> tuple : delta_ext) {
                 if( tuple.get(0).equals(delta_sel) ) {
                     //LOGGER.debug("extractModifications got tuple "+tuple);
@@ -189,8 +191,11 @@ public class OWLAPIPlugin implements IPlugin {
                     //LOGGER.info(" argumentIRIs = "+argumentIRIs);
                     switch(mtype) {
                         case "addc":
-                            ret.add(new OntologyContext.AddClassAssertionAxiomOntologyModification(
-                                argumentIRIs.get(0), argumentIRIs.get(1)));
+                            ret.add(new AddAxiom(
+                                ctx.ontology(), 
+                                ctx.df().getOWLClassAssertionAxiom(
+                                    ctx.df().getOWLClass(argumentIRIs.get(0)),
+                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
                             break;
                         default:
                             LOGGER.error("delta modification of ontology got unknown type '"+mtype+"' (can be {add,del}{c,op,dp}) - ignoring");
@@ -212,33 +217,6 @@ public class OWLAPIPlugin implements IPlugin {
             super("dlConsistent", new ArrayList<InputType>());
         }
 
-        // final OWLOntologyManager man2 = OWLManager.createOWLOntologyManager();
-        // OWLOntology ontm = man2.copyOntology(ont, OntologyCopy.SHALLOW);
-        // ontm.addAxiom(df.getOWLClassAssertionAxiom(
-        //     df.getOWLClass(IRI.create(evoprod_prefix, "CanWithCap")),
-        //     df.getOWLNamedIndividual(IRI.create(evoprod_prefix, "PeterNew"))));
-
-        // final OWLReasoner reasoner2 = reasonerFactory.createNonBufferingReasoner(ontm);
-        // reasoner2.precomputeInferences(InferenceType.CLASS_HIERARCHY);
-
-        // System.out.println("&dlCro for all classes - modified");
-        // ont.classesInSignature(Imports.INCLUDED).forEach( c -> {
-        //     System.out.println("  class in signature - modified" + c.toString());
-        //     // the boolean argument specifies direct subclasses; false would
-        //     // specify all subclasses
-        //     // a NodeSet represents a set of Nodes.
-        //     // a Node represents a set of equivalent classes/or sameAs
-        //     // individuals
-        //     reasoner2.getInstances(c, true).entities().forEach( i -> {
-        //         System.out.println("    named individual-modified " + i.toString());
-        //         ont.objectPropertiesInSignature().forEach( op -> {
-        //             reasoner2.getObjectPropertyValues(i, op).entities().forEach( value -> {
-        //                 System.out.println("      property " + op.getIRI().getShortForm() + " has value " +value.getIRI().getShortForm());
-        //             });
-        //         });
-        //     });
-        // });
-
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
             final String location = withoutQuotes(query.getInput().get(0).value());
@@ -246,17 +224,22 @@ public class OWLAPIPlugin implements IPlugin {
             final IOntologyContext oc = ontologyContext(location);
             final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
             final ISymbol delta_sel = query.getInput().get(2);
-            final List<? extends IOntologyModification> modifications = extractModifications(oc, delta_ext, delta_sel);
-            final IOntologyContext moc = oc.modifiedCopy(modifications);
+            final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
+
+            oc.applyChanges(modifications);
+
             final Answer answer = new Answer();
             String verdict = "inconsistent";
-            OWLReasoner reasoner = moc.reasoner();
+            OWLReasoner reasoner = oc.reasoner();
             //LOGGER.info("reasoner is "+reasoner.toString());
             if( reasoner.isConsistent() ) {
                 answer.output(new ArrayList<ISymbol>());
                 verdict = "consistent";
             }
             LOGGER.info("retrieve() with modifications "+modifications.toString()+" is "+verdict);
+
+            oc.revertChanges(modifications);
+
             return answer;
         }
     }

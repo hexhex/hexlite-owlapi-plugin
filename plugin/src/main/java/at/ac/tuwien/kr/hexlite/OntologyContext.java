@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,8 +21,10 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.parameters.ChangeApplied;
 import org.semanticweb.owlapi.reasoner.InferenceType;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
@@ -97,21 +100,17 @@ class OntologyContext implements IOntologyContext {
        } catch (final OWLOntologyCreationException e) {
            System.err.println("could not load ontology " + _uri + " with exception " + e.toString());
        }
-       _reasoner = null;
-   }
+       // adding here works
+    //    org.semanticweb.owlapi.model.parameters.ChangeApplied ca = _ontology.addAxiom(
+    //     _df.getOWLClassAssertionAxiom(
+    //         _df.getOWLClass(
+    //             "http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Quokka"
+    //         ), _df.getOWLNamedIndividual(
+    //             "http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa"
+    //         )));
+    //    LOGGER.info("ZZ  -> "+ca+" yields "+_ontology);
 
-   private OntologyContext(OntologyContext original) {
-       _uri = original._uri;
-       _namespaces = original._namespaces;
-       _df = original._df;
-       _manager = OWLManager.createOWLOntologyManager();
-       // TODO: shallow copy sufficient?
-       try {
-           _ontology = _manager.copyOntology(original._ontology, OntologyCopy.SHALLOW);
-       } catch (final OWLOntologyCreationException e) {
-           System.err.println("could not copy ontology " + _uri + " with exception " + e.toString());
-       }
-       _reasoner = null;
+        _reasoner = null;
    }
 
    public OWLDataFactory df() {
@@ -123,14 +122,31 @@ class OntologyContext implements IOntologyContext {
    }
 
    public OWLReasoner reasoner() {
-       if( _reasoner == null ) {
+       if( true || _reasoner == null ) {
+           // this reasoner is not sufficient
            //OWLReasonerFactory rf = new StructuralReasonerFactory();
            //_reasoner = rf.createNonBufferingReasoner(_ontology);
            //_reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+
+           // this works
            org.semanticweb.HermiT.Configuration cfg = new org.semanticweb.HermiT.Configuration();
-    _reasoner = new org.semanticweb.HermiT.Reasoner(cfg, _ontology);
-    //_reasoner = new org.semanticweb.HermiT.Reasoner.ReasonerFactory().createReasoner(_ontology);
-        _reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
+           _reasoner = new org.semanticweb.HermiT.Reasoner(cfg, _ontology);
+
+
+        //    org.semanticweb.owlapi.model.parameters.ChangeApplied ca = _ontology.addAxiom(
+        //     _df.getOWLClassAssertionAxiom(
+        //         _df.getOWLClass(
+        //             "http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Quokka"
+        //         ), _df.getOWLNamedIndividual(
+        //             "http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa"
+        //         )));
+        //    LOGGER.info("ZZ  -> "+ca+" yields "+_ontology);
+    
+           // this works
+           //_reasoner = new org.semanticweb.HermiT.Reasoner.ReasonerFactory().createReasoner(_ontology);
+
+           // this is not necessary
+           //_reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
            LOGGER.warn("created hermit which is consistent:" +_reasoner.isConsistent());
        }
        return _reasoner;
@@ -171,43 +187,18 @@ class OntologyContext implements IOntologyContext {
            }
        }
        return value;
-   }
+    }
 
-   public static class AddClassAssertionAxiomOntologyModification implements IOntologyModification {
-       private final IRI _classIRI;
-       private final IRI _instanceIRI;
-
-       public AddClassAssertionAxiomOntologyModification(final IRI classIRI, final IRI instanceIRI) {
-           _classIRI = classIRI;
-           _instanceIRI = instanceIRI;
-       }
-
-       @Override
-       public void apply(final IOntologyContext ctx) {
-           LOGGER.info("applying "+toString()+" to "+ctx.ontology()+"!");
-           org.semanticweb.owlapi.model.parameters.ChangeApplied ca = ctx.ontology().addAxiom(
-               ctx.df().getOWLClassAssertionAxiom(
-                   ctx.df().getOWLClass(_classIRI),
-                   ctx.df().getOWLNamedIndividual(_instanceIRI)));
-           LOGGER.info("  -> "+ca);
-       }
-
-       @Override
-       public String toString() {
-           return "+["+_classIRI+"("+_instanceIRI+")]";
-       }
-   }
-   // TODO: add further implementations for various purposes
-
-   @Override
-   public IOntologyContext modifiedCopy(final Collection<? extends IOntologyModification> operations) {
-       IOntologyContext ret = new OntologyContext(this);
-//       OWLReasoner r = reasoner();
-//       LOGGER.info("before modification: reasoner is consistent "+r.isConsistent());
-       for( IOntologyModification mod : operations ) {
-           mod.apply(ret);
-       }
-//       LOGGER.info("after modification: reasoner is consistent "+r.isConsistent());
-       return ret;
-   }
+    public void applyChanges(List<? extends OWLOntologyChange> changes) {
+        ChangeApplied ca = _manager.applyChanges(changes);
+        LOGGER.info("applyChange "+ca+" for "+changes.toString());
+    }
+    public void revertChanges(List<? extends OWLOntologyChange> changes) {
+        List<OWLOntologyChange> reversed = new ArrayList<OWLOntologyChange>(changes.size());
+        for(OWLOntologyChange c : changes) {
+            reversed.add(c.reverseChange());
+        }
+        ChangeApplied ca = _manager.applyChanges(reversed);
+        LOGGER.info("revertChange "+ca+" for "+changes.toString());
+    }
 }
