@@ -17,6 +17,8 @@ import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.AddAxiom;
+import org.semanticweb.owlapi.model.RemoveAxiom;
+import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import at.ac.tuwien.kr.hexlite.api.Answer;
@@ -161,7 +163,6 @@ public class OWLAPIPlugin implements IPlugin {
             ret.add(InputType.PREDICATE);
             ret.add(InputType.CONSTANT);
             ret.addAll(_extraArgumentTypes);
-            System.err.println("returning " + ret.toString());
             return ret;
         }
 
@@ -187,17 +188,70 @@ public class OWLAPIPlugin implements IPlugin {
                         argumentIRIs.add(IRI.create(ctx.expandNamespace(withoutQuotes(arg.value()))));
                     }
                     //LOGGER.info(" argumentIRIs = "+argumentIRIs);
-                    switch(mtype) {
-                        case "addc":
-                            ret.add(new AddAxiom(
-                                ctx.ontology(), 
+                    switch (mtype) {
+                    case "addc":
+                        ret.add(new AddAxiom(ctx.ontology(),
                                 ctx.df().getOWLClassAssertionAxiom(
                                     ctx.df().getOWLClass(argumentIRIs.get(0)),
                                     ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
-                            break;
-                        default:
-                            LOGGER.error("delta modification of ontology got unknown type '"+mtype+"' (can be {add,del}{c,op,dp}) - ignoring");
-                    }                    
+                        break;
+                    case "delc":
+                        ret.add(new RemoveAxiom(ctx.ontology(),
+                                ctx.df().getOWLClassAssertionAxiom(
+                                    ctx.df().getOWLClass(argumentIRIs.get(0)),
+                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
+                        break;
+                    case "addop":
+                        ret.add(new AddAxiom(ctx.ontology(),
+                                ctx.df().getOWLObjectPropertyAssertionAxiom(
+                                    ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
+                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
+                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
+                        break;
+                    case "delop":
+                        ret.add(new RemoveAxiom(ctx.ontology(),
+                                ctx.df().getOWLObjectPropertyAssertionAxiom(
+                                    ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
+                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
+                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
+                        break;
+                    case "adddp":
+                        {
+                            // TODO implement other literal types besides string
+                            final ISymbol symvalue = child.get(3);
+                            final String svalue = symvalue.value();
+                            OWLLiteral literal = null;
+                            LOGGER.info("processing adddp value "+svalue);
+                            if( svalue.startsWith("\"") ) {
+                                LOGGER.info("  IT IS string");
+                                literal = ctx.df().getOWLLiteral(svalue.substring(1,svalue.length()-1));
+                            } else if( svalue.equals("true") ) {
+                                LOGGER.info("  IT IS true");
+                                literal = ctx.df().getOWLLiteral(true);
+                            } else if( svalue.equals("false") ) {
+                                LOGGER.info("  IT IS false");
+                                literal = ctx.df().getOWLLiteral(false);
+                            } else {
+                                try {
+                                    literal = ctx.df().getOWLLiteral(symvalue.intValue());
+                                    LOGGER.info("  IT IS integer");
+                                }
+                                catch(RuntimeException e) {
+                                    LOGGER.info("  IT IS stringsymbol");
+                                    literal = ctx.df().getOWLLiteral(svalue);
+                                }
+                            }                            
+                            ret.add(new AddAxiom(ctx.ontology(),
+                                    ctx.df().getOWLDataPropertyAssertionAxiom(
+                                        ctx.df().getOWLDataProperty(argumentIRIs.get(0)),
+                                        ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
+                                        literal)));
+                        }
+                        break;
+                    default:
+                        LOGGER.error("delta modification of ontology got unknown type '" + mtype
+                                + "' (can be {add,del}{c,op,dp}) - ignoring");
+                    }
 
                     // TODO extract relevant tuples to learn a nogood to avoid doing this multiple times for modifications of non-selected atoms (important! exponential speedup!)
                 }
@@ -224,10 +278,12 @@ public class OWLAPIPlugin implements IPlugin {
             final ISymbol delta_sel = query.getInput().get(2);
             final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
 
+            LOGGER.info("applying changes "+modifications.toString());
             oc.applyChanges(modifications);
 
             final Answer answer = new Answer();
             OWLReasoner reasoner = oc.reasoner();
+            LOGGER.info("result: consistent="+reasoner.isConsistent());
             if( reasoner.isConsistent() ) {
                 answer.output(new ArrayList<ISymbol>());
             }

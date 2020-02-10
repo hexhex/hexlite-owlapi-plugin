@@ -6,7 +6,7 @@
     </Console>
   </Appenders>
   <Loggers>
-    <Root level="info"> <!-- the log level to display: e.g., info, debug, warn -->
+    <Root level="warn"> <!-- the log level to display: e.g., info, debug, warn -->
       <AppenderRef ref="CON"/>
     </Root>
   </Loggers>
