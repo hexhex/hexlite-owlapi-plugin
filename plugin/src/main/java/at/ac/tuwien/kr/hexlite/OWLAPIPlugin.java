@@ -166,8 +166,8 @@ public class OWLAPIPlugin implements IPlugin {
             return ret;
         }
 
-        public ModifiedOntologyBaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes) {
-            super(_predicate, prepareArguments(_extraArgumentTypes), 0);
+        public ModifiedOntologyBaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes, int output_arguments) {
+            super(_predicate, prepareArguments(_extraArgumentTypes), output_arguments);
             // first argument = ontology meta file location (from BaseAtom)
             // second argument = delta predicate
             // third argument = delta selector
@@ -266,7 +266,7 @@ public class OWLAPIPlugin implements IPlugin {
             // true iff the specified ontology after modification by
             //          the delta in deltapredicate selected by the selector
             //          is consistent
-            super("dlConsistent", new ArrayList<InputType>());
+            super("dlConsistent", new ArrayList<InputType>(), 0);
         }
 
         @Override
@@ -293,7 +293,47 @@ public class OWLAPIPlugin implements IPlugin {
             return answer;
         }
     }
-    
+
+    public class ModifiedOntologyObjectPropertyReadOnlyQueryAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyObjectPropertyReadOnlyQueryAtom() {
+            super("dlOP", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
+            final IOntologyContext oc = ontologyContext(location);
+
+            final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
+            final ISymbol delta_sel = query.getInput().get(2);
+            final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
+            LOGGER.info("applying changes "+modifications.toString());
+            oc.applyChanges(modifications);
+
+            final String opQuery = withoutQuotes(query.getInput().get(3).value());
+            final String expandedQuery = oc.expandNamespace(opQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+
+            final Answer answer = new Answer();
+            final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> op);
+            oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
+                    .distinct().forEach(domainindividual -> {
+                        oc.reasoner().objectPropertyValues(domainindividual, op).forEach(value -> {
+                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
+                                    () -> op, () -> value);
+                            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                            t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
+                            t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
+                            answer.output(t);
+                        });
+                    });
+
+            return answer;
+        }
+    }
+
     public class DataPropertyReadOnlyQueryAtom extends BaseAtom {
         public DataPropertyReadOnlyQueryAtom() {
             super("dlDPro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
@@ -366,6 +406,7 @@ public class OWLAPIPlugin implements IPlugin {
         atoms.add(new DataPropertyReadOnlyQueryAtom());
         atoms.add(new ModifiedOntologyConsistentAtom());
         atoms.add(new SimplifyIRIAtom());
+        atoms.add(new ModifiedOntologyObjectPropertyReadOnlyQueryAtom());
         return atoms;        
 	}
 }
