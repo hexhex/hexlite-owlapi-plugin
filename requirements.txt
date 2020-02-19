@@ -1,1 +1,1 @@
--e git+http://github.com/hexhex/hexlite.git
+hexlite==1.0.2
