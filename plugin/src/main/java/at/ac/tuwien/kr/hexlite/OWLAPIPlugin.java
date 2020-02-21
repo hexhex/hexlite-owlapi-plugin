@@ -149,9 +149,10 @@ public class OWLAPIPlugin implements IPlugin {
                         LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
                         t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
-                        t.add(ctx.storestring(value.getIRI().toString())); // maybe getShortForm()
+                        t.add(ctx.storeString(value.getIRI().toString())); // maybe getShortForm()
                         answer.output(t);
                     });
+                });
 
             return answer;
         }
