@@ -114,7 +114,7 @@ public class OWLAPIPlugin implements IPlugin {
             oc.reasoner().getInstances(owlquery, false).entities().forEach(instance -> {
                 LOGGER.debug("found instance {}", () -> instance);
                 final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
-                t.add(ctx.storeConstant(instance.getIRI().toString())); // maybe getShortForm()
+                t.add(ctx.storeString(instance.getIRI().toString()));
                 answer.output(t);
             });
 
@@ -147,8 +147,8 @@ public class OWLAPIPlugin implements IPlugin {
                             LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
                                     () -> op, () -> value);
                             final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                            t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
-                            t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
+                            t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
+                            t.add(ctx.storeString(value.getIRI().toString())); // maybe getShortForm()
                             answer.output(t);
                         });
                     });
@@ -156,7 +156,7 @@ public class OWLAPIPlugin implements IPlugin {
             return answer;
         }
     }
-    
+
     public class DataPropertyReadOnlyQueryAtom extends BaseAtom {
         public DataPropertyReadOnlyQueryAtom() {
             super("dlDPro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
@@ -182,8 +182,8 @@ public class OWLAPIPlugin implements IPlugin {
                     oc.reasoner().dataPropertyValues(domainindividual, dp).forEach( value -> {
                         LOGGER.debug("found individual {} related via data property {} to value {}", () -> domainindividual, () -> dp, () -> value);
                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                        t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
-                        t.add(ctx.storeConstant(value.getLiteral())); // maybe deal with integers/types differently: value.isBoolean value.isInteger
+                        t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
+                        t.add(ctx.storeString(value.getLiteral())); // maybe deal with integers/types differently: value.isBoolean value.isInteger
                         answer.output(t);
                     });
                 });
@@ -329,6 +329,45 @@ public class OWLAPIPlugin implements IPlugin {
         }
     }
 
+    public class ModifiedOntologyClassQueryAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyClassQueryAtom() {
+            super("dlC", Arrays.asList(new InputType[] { InputType.CONSTANT }), 1);
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
+            final IOntologyContext oc = ontologyContext(location);
+
+            final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
+            final ISymbol delta_sel = query.getInput().get(2);
+            final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
+            LOGGER.info("applying changes "+modifications.toString());
+            oc.applyChanges(modifications);
+
+            final Answer answer = new Answer();
+            if( !oc.reasoner().isConsistent() )
+                return answer;
+
+            final String opQuery = withoutQuotes(query.getInput().get(3).value());
+            final String expandedQuery = oc.expandNamespace(opQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+
+            final OWLClassExpression cquery = oc.df().getOWLClass(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> cquery);
+            oc.reasoner().getInstances(cquery).entities().forEach(domainindividual -> {
+                    LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
+
+                    final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
+                    t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                    answer.output(t);
+                });
+
+            return answer;
+        }
+    }
+
     public class ModifiedOntologyObjectPropertyQueryAtom extends ModifiedOntologyBaseAtom {
         public ModifiedOntologyObjectPropertyQueryAtom() {
             super("dlOP", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
@@ -346,11 +385,14 @@ public class OWLAPIPlugin implements IPlugin {
             LOGGER.info("applying changes "+modifications.toString());
             oc.applyChanges(modifications);
 
+            final Answer answer = new Answer();
+            if( !oc.reasoner().isConsistent() )
+                return answer;
+
             final String opQuery = withoutQuotes(query.getInput().get(3).value());
             final String expandedQuery = oc.expandNamespace(opQuery);
             LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
-            final Answer answer = new Answer();
             final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
             LOGGER.debug("querying ontology with expression {}", () -> op);
             oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
@@ -359,8 +401,8 @@ public class OWLAPIPlugin implements IPlugin {
                             LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
                                     () -> op, () -> value);
                             final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                            t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
-                            t.add(ctx.storeConstant(value.getIRI().toString())); // maybe getShortForm()
+                            t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                            t.add(ctx.storeString(value.getIRI().toString()));
                             answer.output(t);
                         });
                     });
@@ -386,7 +428,7 @@ public class OWLAPIPlugin implements IPlugin {
 
             final Answer answer = new Answer();
             final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
-            t.add(ctx.storeConstant(simplified));
+            t.add(ctx.storeString(simplified));
             answer.output(t);
             
             return answer;
@@ -405,6 +447,7 @@ public class OWLAPIPlugin implements IPlugin {
         atoms.add(new ObjectPropertyReadOnlyQueryAtom());
         atoms.add(new DataPropertyReadOnlyQueryAtom());
         atoms.add(new ModifiedOntologyConsistentAtom());
+        atoms.add(new ModifiedOntologyClassQueryAtom());
         atoms.add(new ModifiedOntologyObjectPropertyQueryAtom());
         atoms.add(new SimplifyIRIAtom());
         return atoms;        
