@@ -156,6 +156,41 @@ public class OWLAPIPlugin implements IPlugin {
             return answer;
         }
     }
+    
+    public class DataPropertyReadOnlyQueryAtom extends BaseAtom {
+        public DataPropertyReadOnlyQueryAtom() {
+            super("dlDPro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
+        }
+
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            final String dpQuery = withoutQuotes(query.getInput().get(1).value());
+            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dpQuery);
+            final IOntologyContext oc = ontologyContext(location);
+            final String expandedQuery = oc.expandNamespace(dpQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+
+            final Answer answer = new Answer();
+            final OWLDataProperty dp = oc.df().getOWLDataProperty(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> dp);
+            oc.reasoner().dataPropertyDomains(dp)
+                .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
+                .distinct()
+                .forEach( domainindividual -> {
+                    oc.reasoner().dataPropertyValues(domainindividual, dp).forEach( value -> {
+                        LOGGER.debug("found individual {} related via data property {} to value {}", () -> domainindividual, () -> dp, () -> value);
+                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                        t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
+                        t.add(ctx.storeConstant(value.getLiteral())); // maybe deal with integers/types differently: value.isBoolean value.isInteger
+                        answer.output(t);
+                    });
+                });
+            
+            return answer;
+        }
+    }
 
     public abstract static class ModifiedOntologyBaseAtom extends BaseAtom {
         private static List<InputType> prepareArguments(final List<InputType> _extraArgumentTypes) {
@@ -294,8 +329,8 @@ public class OWLAPIPlugin implements IPlugin {
         }
     }
 
-    public class ModifiedOntologyObjectPropertyReadOnlyQueryAtom extends ModifiedOntologyBaseAtom {
-        public ModifiedOntologyObjectPropertyReadOnlyQueryAtom() {
+    public class ModifiedOntologyObjectPropertyQueryAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyObjectPropertyQueryAtom() {
             super("dlOP", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
         }
 
@@ -330,41 +365,6 @@ public class OWLAPIPlugin implements IPlugin {
                         });
                     });
 
-            return answer;
-        }
-    }
-
-    public class DataPropertyReadOnlyQueryAtom extends BaseAtom {
-        public DataPropertyReadOnlyQueryAtom() {
-            super("dlDPro", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
-        }
-
-        @Override
-        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            LOGGER.debug("retrieve of {}", () -> getPredicate());
-            final String location = withoutQuotes(query.getInput().get(0).value());
-            final String dpQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dpQuery);
-            final IOntologyContext oc = ontologyContext(location);
-            final String expandedQuery = oc.expandNamespace(dpQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
-
-            final Answer answer = new Answer();
-            final OWLDataProperty dp = oc.df().getOWLDataProperty(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> dp);
-            oc.reasoner().dataPropertyDomains(dp)
-                .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
-                .distinct()
-                .forEach( domainindividual -> {
-                    oc.reasoner().dataPropertyValues(domainindividual, dp).forEach( value -> {
-                        LOGGER.debug("found individual {} related via data property {} to value {}", () -> domainindividual, () -> dp, () -> value);
-                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                        t.add(ctx.storeConstant(domainindividual.getIRI().toString())); // maybe getShortForm()
-                        t.add(ctx.storeConstant(value.getLiteral())); // maybe deal with integers/types differently: value.isBoolean value.isInteger
-                        answer.output(t);
-                    });
-                });
-            
             return answer;
         }
     }
@@ -405,8 +405,8 @@ public class OWLAPIPlugin implements IPlugin {
         atoms.add(new ObjectPropertyReadOnlyQueryAtom());
         atoms.add(new DataPropertyReadOnlyQueryAtom());
         atoms.add(new ModifiedOntologyConsistentAtom());
+        atoms.add(new ModifiedOntologyObjectPropertyQueryAtom());
         atoms.add(new SimplifyIRIAtom());
-        atoms.add(new ModifiedOntologyObjectPropertyReadOnlyQueryAtom());
         return atoms;        
 	}
 }
