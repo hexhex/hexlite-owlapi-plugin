@@ -141,16 +141,16 @@ public class OWLAPIPlugin implements IPlugin {
             final Answer answer = new Answer();
             final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
             LOGGER.debug("querying ontology with expression {}", () -> op);
-            oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
-                    .distinct().forEach(domainindividual -> {
-                        oc.reasoner().objectPropertyValues(domainindividual, op).forEach(value -> {
-                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
-                                    () -> op, () -> value);
-                            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                            t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
-                            t.add(ctx.storeString(value.getIRI().toString())); // maybe getShortForm()
-                            answer.output(t);
-                        });
+            oc.reasoner().objectPropertyDomains(op)
+                .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
+                .distinct()
+                .forEach( domainindividual -> {
+                    oc.reasoner().objectPropertyValues(domainindividual, op).forEach( value -> {
+                        LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
+                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                        t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
+                        t.add(ctx.storestring(value.getIRI().toString())); // maybe getShortForm()
+                        answer.output(t);
                     });
 
             return answer;
