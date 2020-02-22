@@ -357,7 +357,7 @@ public class OWLAPIPlugin implements IPlugin {
 
             final OWLClassExpression cquery = oc.df().getOWLClass(IRI.create(expandedQuery));
             LOGGER.debug("querying ontology with expression {}", () -> cquery);
-            oc.reasoner().getInstances(cquery).entities().forEach(domainindividual -> {
+            oc.reasoner().getInstances(cquery, false /*get also direct instances*/).entities().forEach(domainindividual -> {
                     LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
 
                     final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
