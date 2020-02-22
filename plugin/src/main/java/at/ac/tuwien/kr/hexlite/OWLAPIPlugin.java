@@ -314,17 +314,20 @@ public class OWLAPIPlugin implements IPlugin {
             final ISymbol delta_sel = query.getInput().get(2);
             final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
 
-            LOGGER.info("applying changes "+modifications.toString());
-            oc.applyChanges(modifications);
-
             final Answer answer = new Answer();
-            OWLReasoner reasoner = oc.reasoner();
-            LOGGER.info("result: consistent="+reasoner.isConsistent());
-            if( reasoner.isConsistent() ) {
-                answer.output(new ArrayList<ISymbol>());
-            }
 
-            oc.revertChanges(modifications);
+            LOGGER.info("applying changes ",modifications.toString());
+            oc.applyChanges(modifications);
+            try {
+                OWLReasoner reasoner = oc.reasoner();
+                LOGGER.info("result: consistent="+reasoner.isConsistent());
+                if( reasoner.isConsistent() ) {
+                    answer.output(new ArrayList<ISymbol>());
+                }
+            } finally {
+                LOGGER.info("reverting changes");
+                oc.revertChanges(modifications);
+            }
 
             return answer;
         }
@@ -344,26 +347,32 @@ public class OWLAPIPlugin implements IPlugin {
             final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
             final ISymbol delta_sel = query.getInput().get(2);
             final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
-            LOGGER.info("applying changes "+modifications.toString());
-            oc.applyChanges(modifications);
 
             final Answer answer = new Answer();
-            if( !oc.reasoner().isConsistent() )
-                return answer;
 
-            final String opQuery = withoutQuotes(query.getInput().get(3).value());
-            final String expandedQuery = oc.expandNamespace(opQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            LOGGER.info("applying changes ",modifications.toString());
+            oc.applyChanges(modifications);
+            try {
+                if( !oc.reasoner().isConsistent() )
+                    return answer;
 
-            final OWLClassExpression cquery = oc.df().getOWLClass(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> cquery);
-            oc.reasoner().getInstances(cquery, false /*get also direct instances*/).entities().forEach(domainindividual -> {
-                    LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
+                final String opQuery = withoutQuotes(query.getInput().get(3).value());
+                final String expandedQuery = oc.expandNamespace(opQuery);
+                LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
-                    final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
-                    t.add(ctx.storeString(domainindividual.getIRI().toString()));
-                    answer.output(t);
-                });
+                final OWLClassExpression cquery = oc.df().getOWLClass(IRI.create(expandedQuery));
+                LOGGER.debug("querying ontology with expression {}", () -> cquery);
+                oc.reasoner().getInstances(cquery, false /*get also direct instances*/).entities().forEach(domainindividual -> {
+                        LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
+
+                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
+                        t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                        answer.output(t);
+                    });
+            } finally {
+                LOGGER.info("reverting changes");
+                oc.revertChanges(modifications);
+            }
 
             return answer;
         }
@@ -383,30 +392,36 @@ public class OWLAPIPlugin implements IPlugin {
             final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
             final ISymbol delta_sel = query.getInput().get(2);
             final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
-            LOGGER.info("applying changes "+modifications.toString());
-            oc.applyChanges(modifications);
 
             final Answer answer = new Answer();
-            if( !oc.reasoner().isConsistent() )
-                return answer;
 
-            final String opQuery = withoutQuotes(query.getInput().get(3).value());
-            final String expandedQuery = oc.expandNamespace(opQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            LOGGER.info("applying changes ",modifications.toString());
+            oc.applyChanges(modifications);
+            try {
+                if( !oc.reasoner().isConsistent() )
+                    return answer;
 
-            final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> op);
-            oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
-                    .distinct().forEach(domainindividual -> {
-                        oc.reasoner().objectPropertyValues(domainindividual, op).forEach(value -> {
-                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
-                                    () -> op, () -> value);
-                            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                            t.add(ctx.storeString(domainindividual.getIRI().toString()));
-                            t.add(ctx.storeString(value.getIRI().toString()));
-                            answer.output(t);
+                final String opQuery = withoutQuotes(query.getInput().get(3).value());
+                final String expandedQuery = oc.expandNamespace(opQuery);
+                LOGGER.debug("expanded query to {}", () -> expandedQuery);
+
+                final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
+                LOGGER.debug("querying ontology with expression {}", () -> op);
+                oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
+                        .distinct().forEach(domainindividual -> {
+                            oc.reasoner().objectPropertyValues(domainindividual, op).forEach(value -> {
+                                LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
+                                        () -> op, () -> value);
+                                final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                                t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                                t.add(ctx.storeString(value.getIRI().toString()));
+                                answer.output(t);
+                            });
                         });
-                    });
+            } finally {
+                LOGGER.info("reverting changes");
+                oc.revertChanges(modifications);
+            }
 
             return answer;
         }
