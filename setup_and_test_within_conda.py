@@ -7,7 +7,8 @@ def main():
 	s.interpret_arguments(sys.argv)
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
-	s.install_jpype('d864253e7f') # 'v0.7.2'
+	#s.install_jpype_via_build('v0.7.2')
+	s.install_jpype_via_conda()
 	s.reclone_hexlite('javapluginapi')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
@@ -64,7 +65,7 @@ class Setup:
 		self.__run_shell_get_stdout('conda create --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
-	def install_jpype(self, github_ref):
+	def install_jpype_via_build(self, github_ref):
 		env = self.config['env']
 
 		logging.info('cloning jpype')
@@ -81,9 +82,13 @@ class Setup:
 		logging.info("hiding %s as %s", ld_orig, ld_temp)
 		os.rename(ld_orig, ld_temp) # conda bug, see readme in hexlite repo
 		try:
-			self.__run_shell_get_stdout('source activate %s && cd jpype && pip install dist/* --global-option=--disable-numpy >&2' % env)
+			self.__run_shell_get_stdout('source activate %s && cd jpype && pip install dist/* >&2' % env)
 		finally:
 			os.rename(ld_temp, ld_orig) # restore conda env
+
+	def install_jpype_via_conda(self):
+		env = self.config['env']
+		self.__run_shell_get_stdout("source activate %s && conda install -c conda-forge jpype1 >&2" % (env,))
 
 	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
