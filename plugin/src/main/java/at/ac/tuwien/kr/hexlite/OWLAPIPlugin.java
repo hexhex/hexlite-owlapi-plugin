@@ -265,78 +265,78 @@ public class OWLAPIPlugin implements IPlugin {
             // alias for historical reasons
             final List<OWLOntologyChange> ret = out.changes;
 
-                    String mtype = child.get(0).value();
-                    List<IRI> argumentIRIs = new ArrayList<IRI>(child.size()-1);
-                    for( ISymbol arg : child.subList(1,child.size()) ) {
-                        argumentIRIs.add(IRI.create(ctx.expandNamespace(withoutQuotes(arg.value()))));
-                    }
-                    //LOGGER.info(" argumentIRIs = "+argumentIRIs);
-                    switch (mtype) {
-                    case "addc":
-                        ret.add(new AddAxiom(ctx.ontology(),
-                                ctx.df().getOWLClassAssertionAxiom(
-                                    ctx.df().getOWLClass(argumentIRIs.get(0)),
-                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
-                        break;
-                    case "delc":
-                        ret.add(new RemoveAxiom(ctx.ontology(),
-                                ctx.df().getOWLClassAssertionAxiom(
-                                    ctx.df().getOWLClass(argumentIRIs.get(0)),
-                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
-                        break;
-                    case "addop":
-                        ret.add(new AddAxiom(ctx.ontology(),
-                                ctx.df().getOWLObjectPropertyAssertionAxiom(
-                                    ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
-                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
-                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
-                        break;
-                    case "delop":
-                        ret.add(new RemoveAxiom(ctx.ontology(),
-                                ctx.df().getOWLObjectPropertyAssertionAxiom(
-                                    ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
-                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
-                                    ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
-                        break;
-                    case "adddp":
-                        {
-                            // TODO implement other literal types besides string
-                            final ISymbol symvalue = child.get(3);
-                            final String svalue = symvalue.value();
-                            OWLLiteral literal = null;
-                            LOGGER.info("processing adddp value "+svalue);
-                            if( svalue.startsWith("\"") ) {
-                                LOGGER.info("  IT IS string");
-                                literal = ctx.df().getOWLLiteral(svalue.substring(1,svalue.length()-1));
-                            } else if( svalue.equals("true") ) {
-                                LOGGER.info("  IT IS true");
-                                literal = ctx.df().getOWLLiteral(true);
-                            } else if( svalue.equals("false") ) {
-                                LOGGER.info("  IT IS false");
-                                literal = ctx.df().getOWLLiteral(false);
-                            } else {
-                                try {
-                                    literal = ctx.df().getOWLLiteral(symvalue.intValue());
-                                    LOGGER.info("  IT IS integer");
-                                }
-                                catch(RuntimeException e) {
-                                    LOGGER.info("  IT IS stringsymbol");
-                                    literal = ctx.df().getOWLLiteral(svalue);
-                                }
-                            }                            
-                            ret.add(new AddAxiom(ctx.ontology(),
-                                    ctx.df().getOWLDataPropertyAssertionAxiom(
-                                        ctx.df().getOWLDataProperty(argumentIRIs.get(0)),
-                                        ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
-                                        literal)));
-                        }
-                        break;
-                    default:
-                        LOGGER.error("delta modification of ontology got unknown type '" + mtype
-                                + "' (can be {add,del}{c,op,dp}) - ignoring");
-                    }
-                }
+            String mtype = child.get(0).value();
+            List<IRI> argumentIRIs = new ArrayList<IRI>(child.size()-1);
+            for( ISymbol arg : child.subList(1,child.size()) ) {
+                argumentIRIs.add(IRI.create(ctx.expandNamespace(withoutQuotes(arg.value()))));
             }
+            //LOGGER.info(" argumentIRIs = "+argumentIRIs);
+            switch (mtype) {
+            case "addc":
+                ret.add(new AddAxiom(ctx.ontology(),
+                        ctx.df().getOWLClassAssertionAxiom(
+                            ctx.df().getOWLClass(argumentIRIs.get(0)),
+                            ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
+                break;
+            case "delc":
+                ret.add(new RemoveAxiom(ctx.ontology(),
+                        ctx.df().getOWLClassAssertionAxiom(
+                            ctx.df().getOWLClass(argumentIRIs.get(0)),
+                            ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
+                break;
+            case "addop":
+                ret.add(new AddAxiom(ctx.ontology(),
+                        ctx.df().getOWLObjectPropertyAssertionAxiom(
+                            ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
+                            ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
+                            ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
+                break;
+            case "delop":
+                ret.add(new RemoveAxiom(ctx.ontology(),
+                        ctx.df().getOWLObjectPropertyAssertionAxiom(
+                            ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
+                            ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
+                            ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
+                break;
+            case "adddp":
+                {
+                    // TODO implement other literal types besides string
+                    final ISymbol symvalue = child.get(3);
+                    final String svalue = symvalue.value();
+                    OWLLiteral literal = null;
+                    LOGGER.info("processing adddp value "+svalue);
+                    if( svalue.startsWith("\"") ) {
+                        LOGGER.info("  IT IS string");
+                        literal = ctx.df().getOWLLiteral(svalue.substring(1,svalue.length()-1));
+                    } else if( svalue.equals("true") ) {
+                        LOGGER.info("  IT IS true");
+                        literal = ctx.df().getOWLLiteral(true);
+                    } else if( svalue.equals("false") ) {
+                        LOGGER.info("  IT IS false");
+                        literal = ctx.df().getOWLLiteral(false);
+                    } else {
+                        try {
+                            literal = ctx.df().getOWLLiteral(symvalue.intValue());
+                            LOGGER.info("  IT IS integer");
+                        }
+                        catch(RuntimeException e) {
+                            LOGGER.info("  IT IS stringsymbol");
+                            literal = ctx.df().getOWLLiteral(svalue);
+                        }
+                    }                            
+                    ret.add(new AddAxiom(ctx.ontology(),
+                            ctx.df().getOWLDataPropertyAssertionAxiom(
+                                ctx.df().getOWLDataProperty(argumentIRIs.get(0)),
+                                ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
+                                literal)));
+                }
+                break;
+            default:
+                LOGGER.error("delta modification of ontology got unknown type '" + mtype
+                        + "' (can be {add,del}{c,op,dp}) - ignoring");
+            }
+        }
+    }
 
     public class ModifiedOntologyConsistentAtom extends ModifiedOntologyBaseAtom {
         public ModifiedOntologyConsistentAtom() {
@@ -354,12 +354,12 @@ public class OWLAPIPlugin implements IPlugin {
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-                if( reasoner.isConsistent() ) {
+            if( reasoner.isConsistent() ) {
                 answer.output(emptytuple);
                 nogood.add(ctx.storeOutputAtom(emptytuple).negate());
             } else {
                 nogood.add(ctx.storeOutputAtom(emptytuple);
-                }
+            }
             ctx.learn(nogood);
             return answer;
         }
@@ -381,28 +381,28 @@ public class OWLAPIPlugin implements IPlugin {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
-                    return answer;
+                return answer;
             }
 
-                final String opQuery = withoutQuotes(query.getInput().get(3).value());
+            final String opQuery = withoutQuotes(query.getInput().get(3).value());
             final String expandedQuery = moc.expandNamespace(opQuery);
-                LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            LOGGER.debug("expanded query to {}", () -> expandedQuery);
             final OWLClassExpression cquery = moc.df().getOWLClass(IRI.create(expandedQuery));
-                LOGGER.debug("querying ontology with expression {}", () -> cquery);
+            LOGGER.debug("querying ontology with expression {}", () -> cquery);
             moc.reasoner()
                 .getInstances(cquery, false /*get also direct instances*/)
                 .entities()
                 .forEach(domainindividual -> {
-                        LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
+                    LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
                     HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
 
-                        final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
-                        t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                    final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
+                    t.add(ctx.storeString(domainindividual.getIRI().toString()));
 
-                        answer.output(t);
+                    answer.output(t);
                     here_nogood.add(ctx.storeOutputAtom(t).negate());
                     ctx.learn(here_nogood);
-                    });
+                });
             return answer;
         }
 
