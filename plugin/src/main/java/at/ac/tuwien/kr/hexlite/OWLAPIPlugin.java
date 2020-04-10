@@ -194,6 +194,16 @@ public class OWLAPIPlugin implements IPlugin {
     }
 
     public abstract static class ModifiedOntologyBaseAtom extends BaseAtom {
+        protected static class ModificationsContainer {
+            public HashSet<ISymbol> nogood;
+            public List<OWLOntologyChange> changes;
+
+            public ModificationsContainer() {
+                changes = new LinkedList<ISymbol>();
+                nogood = new HashSet<ISymbol>();       
+            }
+        }
+
         private static List<InputType> prepareArguments(final List<InputType> _extraArgumentTypes) {
             final ArrayList<InputType> ret = new ArrayList<InputType>();
             ret.add(InputType.PREDICATE);
@@ -211,13 +221,50 @@ public class OWLAPIPlugin implements IPlugin {
             // no output arguments (=0)
         }
 
-        public List<OWLOntologyChange> extractModifications(IOntologyContext ctx, Set<? extends List<ISymbol>> delta_ext, ISymbol delta_sel) {
-            final List<OWLOntologyChange> ret = new ArrayList<OWLOntologyChange>(10);
-            for(List<ISymbol> tuple : delta_ext) {
-                if( tuple.get(0).equals(delta_sel) ) {
-                    //LOGGER.debug("extractModifications got tuple "+tuple);
-                    List<? extends ISymbol> child = tuple.get(1).tuple();
-                    //LOGGER.debug("  child is "+child);
+        @Override
+        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
+            final String location = withoutQuotes(query.getInput().get(0).value());
+            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
+            final IOntologyContext oc = ontologyContext(location);
+            final ISymbol delta_pred = query.getInput().get(1);
+            final ISymbol delta_sel = query.getInput().get(2);
+            final ModificationsContainer ontology_mods = extractModifications(
+                ctx, query.getInterpretation(), delta_pred, delta_sel);
+            LOGGER.info("applying changes ",ontology_mods.changes.toString());
+            oc.applyChanges(ontology_mods.changes);
+            try {
+                return retrieveDetail(ctx, query, oc, ontology_mods.nogood);
+            } finally {
+                LOGGER.info("reverting changes");
+                oc.revertChanges(modifications);
+            }
+        }
+
+        public abstract Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood);
+
+        protected ModificationsContainer extractModifications(IOntologyContext ctx, IInterpretation interpretation, ISymbol delta_pred, ISymbol delta_sel) {
+            final ModificationsContainer ret = new ModificationsContainer();
+            for(ISymbol atm : in.getInputAtoms()) {
+                final ArrayList<ISymbol> atuple = atm.tuple();
+                System.err.println("input atom "+atm.toString()+" with tuple "+atuple.toString());
+                if( atuple.get(0) == delta_pred && atuple.get(2) == delta_sel ) {
+                    System.err.println("  relevant with truth value "+atm.isTrue().toString());
+                    if( atm.isTrue() ) {
+                        ret.nogood.add(atm);
+                        List<? extends ISymbol> childtuple = atuple.get(1).tuple();
+                        extractSingleModification(ctx, childtuple, ret);
+                    } else {
+                        ret.nogood.add(atm.negate());
+                    }
+                }
+            }
+            return ret;
+        }
+
+        protected void extractSingleModification(IOntologyContext ctx, List<? extends ISymbol> child, ModificationsContainer out) {
+            // alias for historical reasons
+            final List<OWLOntologyChange> ret = out.changes;
+
                     String mtype = child.get(0).value();
                     List<IRI> argumentIRIs = new ArrayList<IRI>(child.size()-1);
                     for( ISymbol arg : child.subList(1,child.size()) ) {
@@ -288,13 +335,8 @@ public class OWLAPIPlugin implements IPlugin {
                         LOGGER.error("delta modification of ontology got unknown type '" + mtype
                                 + "' (can be {add,del}{c,op,dp}) - ignoring");
                     }
-
-                    // TODO extract relevant tuples to learn a nogood to avoid doing this multiple times for modifications of non-selected atoms (important! exponential speedup!)
                 }
             }
-            return ret;
-        }
-    }
 
     public class ModifiedOntologyConsistentAtom extends ModifiedOntologyBaseAtom {
         public ModifiedOntologyConsistentAtom() {
