@@ -384,9 +384,9 @@ public class OWLAPIPlugin implements IPlugin {
                 return answer;
             }
 
-            final String opQuery = withoutQuotes(query.getInput().get(3).value());
-            final String expandedQuery = moc.expandNamespace(opQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            final String cQuery = withoutQuotes(query.getInput().get(3).value());
+            final String expandedQuery = moc.expandNamespace(cQuery);
+            LOGGER.debug("expanded class query to {}", () -> expandedQuery);
             final OWLClassExpression cquery = moc.df().getOWLClass(IRI.create(expandedQuery));
             LOGGER.debug("querying ontology with expression {}", () -> cquery);
             moc.reasoner()
@@ -394,12 +394,13 @@ public class OWLAPIPlugin implements IPlugin {
                 .entities()
                 .forEach(domainindividual -> {
                     LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
-                    HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
 
                     final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                     t.add(ctx.storeString(domainindividual.getIRI().toString()));
 
                     answer.output(t);
+
+                    HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
                     here_nogood.add(ctx.storeOutputAtom(t).negate());
                     ctx.learn(here_nogood);
                 });
@@ -412,45 +413,44 @@ public class OWLAPIPlugin implements IPlugin {
         }
 
         @Override
-        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            final String location = withoutQuotes(query.getInput().get(0).value());
-            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
-            final IOntologyContext oc = ontologyContext(location);
-
-            final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
-            final ISymbol delta_sel = query.getInput().get(2);
-            final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
+        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
+            OWLReasoner reasoner = moc.reasoner();
+            LOGGER.info("result: consistent="+reasoner.isConsistent());
+            final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-
-            LOGGER.info("applying changes ",modifications.toString());
-            oc.applyChanges(modifications);
-            try {
-                if( !oc.reasoner().isConsistent() )
-                    return answer;
-
-                final String opQuery = withoutQuotes(query.getInput().get(3).value());
-                final String expandedQuery = oc.expandNamespace(opQuery);
-                LOGGER.debug("expanded query to {}", () -> expandedQuery);
-
-                final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
-                LOGGER.debug("querying ontology with expression {}", () -> op);
-                oc.reasoner().objectPropertyDomains(op).flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
-                        .distinct().forEach(domainindividual -> {
-                            oc.reasoner().objectPropertyValues(domainindividual, op).forEach(value -> {
-                                LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
-                                        () -> op, () -> value);
-                                final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-                                t.add(ctx.storeString(domainindividual.getIRI().toString()));
-                                t.add(ctx.storeString(value.getIRI().toString()));
-                                answer.output(t);
-                            });
-                        });
-            } finally {
-                LOGGER.info("reverting changes");
-                oc.revertChanges(modifications);
+            if( !oc.reasoner().isConsistent() ) {
+                // make this atom false
+                // XXX is this a good idea? logic would say it is true
+                // cannot learn because do not know potential output tuples of this external atom
+                return answer;
             }
 
+            final String opQuery = withoutQuotes(query.getInput().get(3).value());
+            final String expandedQuery = moc.expandNamespace(opQuery);
+            LOGGER.debug("expanded object property query to {}", () -> expandedQuery);
+            final OWLObjectProperty op = moc.df().getOWLObjectProperty(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> cquery);
+            moc.reasoner()
+                .objectPropertyDomains(op)
+                .flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
+                .distinct().forEach(domainindividual -> {
+                    moc.reasoner()
+                        .objectPropertyValues(domainindividual, op)
+                        .forEach(value -> {
+                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
+                                    () -> op, () -> value);
+                            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                            t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                            t.add(ctx.storeString(value.getIRI().toString()));
+                            
+                            answer.output(t);
+
+                            HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
+                            here_nogood.add(ctx.storeOutputAtom(t).negate());
+                            ctx.learn(here_nogood);                           
+                        });
+                });
             return answer;
         }
     }
