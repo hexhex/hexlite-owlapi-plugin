@@ -5,6 +5,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -25,8 +26,10 @@ import at.ac.tuwien.kr.hexlite.api.Answer;
 import at.ac.tuwien.kr.hexlite.api.ExtSourceProperties;
 import at.ac.tuwien.kr.hexlite.api.IPlugin;
 import at.ac.tuwien.kr.hexlite.api.IPluginAtom;
+import at.ac.tuwien.kr.hexlite.api.IPluginAtom.InputType;
 import at.ac.tuwien.kr.hexlite.api.ISolverContext;
 import at.ac.tuwien.kr.hexlite.api.ISymbol;
+import at.ac.tuwien.kr.hexlite.api.IInterpretation;
 
 public class OWLAPIPlugin implements IPlugin {
     private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPIPlugin");
@@ -45,7 +48,15 @@ public class OWLAPIPlugin implements IPlugin {
         return cachedContexts.get(ontolocation);
     }
 
-    public static abstract class BaseAtom implements IPluginAtom {
+    public static List<InputType> prepareArguments(final List<InputType> _extraArgumentTypes) {
+        final ArrayList<InputType> ret = new ArrayList<InputType>();
+        ret.add(InputType.PREDICATE);
+        ret.add(InputType.CONSTANT);
+        ret.addAll(_extraArgumentTypes);
+        return ret;
+    }
+    
+    public abstract class BaseAtom implements IPluginAtom {
         private final String predicate;
         private final ArrayList<InputType> inputArguments;
         private final int outputArguments;
@@ -193,26 +204,18 @@ public class OWLAPIPlugin implements IPlugin {
         }
     }
 
-    public abstract static class ModifiedOntologyBaseAtom extends BaseAtom {
-        protected static class ModificationsContainer {
+    public abstract class ModifiedOntologyBaseAtom extends BaseAtom {
+        protected class ModificationsContainer {
             public HashSet<ISymbol> nogood;
             public List<OWLOntologyChange> changes;
 
             public ModificationsContainer() {
-                changes = new LinkedList<ISymbol>();
+                changes = new LinkedList<OWLOntologyChange>();
                 nogood = new HashSet<ISymbol>();       
             }
         }
 
-        private static List<InputType> prepareArguments(final List<InputType> _extraArgumentTypes) {
-            final ArrayList<InputType> ret = new ArrayList<InputType>();
-            ret.add(InputType.PREDICATE);
-            ret.add(InputType.CONSTANT);
-            ret.addAll(_extraArgumentTypes);
-            return ret;
-        }
-
-        public ModifiedOntologyBaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes, int output_arguments) {
+        public ModifiedOntologyBaseAtom(final String _predicate, final List<InputType> _extraArgumentTypes, final int output_arguments) {
             super(_predicate, prepareArguments(_extraArgumentTypes), output_arguments);
             // first argument = ontology meta file location (from BaseAtom)
             // second argument = delta predicate
@@ -229,29 +232,29 @@ public class OWLAPIPlugin implements IPlugin {
             final ISymbol delta_pred = query.getInput().get(1);
             final ISymbol delta_sel = query.getInput().get(2);
             final ModificationsContainer ontology_mods = extractModifications(
-                ctx, query.getInterpretation(), delta_pred, delta_sel);
+                oc, query.getInterpretation(), delta_pred, delta_sel);
             LOGGER.info("applying changes ",ontology_mods.changes.toString());
             oc.applyChanges(ontology_mods.changes);
             try {
                 return retrieveDetail(ctx, query, oc, ontology_mods.nogood);
             } finally {
                 LOGGER.info("reverting changes");
-                oc.revertChanges(modifications);
+                oc.revertChanges(ontology_mods.changes);
             }
         }
 
         public abstract Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood);
 
-        protected ModificationsContainer extractModifications(IOntologyContext ctx, IInterpretation interpretation, ISymbol delta_pred, ISymbol delta_sel) {
+        protected ModificationsContainer extractModifications(final IOntologyContext ctx, final IInterpretation interpretation, final ISymbol delta_pred, final ISymbol delta_sel) {
             final ModificationsContainer ret = new ModificationsContainer();
-            for(ISymbol atm : in.getInputAtoms()) {
+            for(final ISymbol atm : interpretation.getInputAtoms()) {
                 final ArrayList<ISymbol> atuple = atm.tuple();
                 System.err.println("input atom "+atm.toString()+" with tuple "+atuple.toString());
                 if( atuple.get(0) == delta_pred && atuple.get(2) == delta_sel ) {
-                    System.err.println("  relevant with truth value "+atm.isTrue().toString());
+                    System.err.println("  relevant with truth value "+atm.isTrue());
                     if( atm.isTrue() ) {
                         ret.nogood.add(atm);
-                        List<? extends ISymbol> childtuple = atuple.get(1).tuple();
+                        final List<? extends ISymbol> childtuple = atuple.get(1).tuple();
                         extractSingleModification(ctx, childtuple, ret);
                     } else {
                         ret.nogood.add(atm.negate());
@@ -261,13 +264,13 @@ public class OWLAPIPlugin implements IPlugin {
             return ret;
         }
 
-        protected void extractSingleModification(IOntologyContext ctx, List<? extends ISymbol> child, ModificationsContainer out) {
+        protected void extractSingleModification(final IOntologyContext ctx, final List<? extends ISymbol> child, final ModificationsContainer out) {
             // alias for historical reasons
             final List<OWLOntologyChange> ret = out.changes;
 
-            String mtype = child.get(0).value();
-            List<IRI> argumentIRIs = new ArrayList<IRI>(child.size()-1);
-            for( ISymbol arg : child.subList(1,child.size()) ) {
+            final String mtype = child.get(0).value();
+            final List<IRI> argumentIRIs = new ArrayList<IRI>(child.size()-1);
+            for( final ISymbol arg : child.subList(1,child.size()) ) {
                 argumentIRIs.add(IRI.create(ctx.expandNamespace(withoutQuotes(arg.value()))));
             }
             //LOGGER.info(" argumentIRIs = "+argumentIRIs);
@@ -319,7 +322,7 @@ public class OWLAPIPlugin implements IPlugin {
                             literal = ctx.df().getOWLLiteral(symvalue.intValue());
                             LOGGER.info("  IT IS integer");
                         }
-                        catch(RuntimeException e) {
+                        catch(final RuntimeException e) {
                             LOGGER.info("  IT IS stringsymbol");
                             literal = ctx.df().getOWLLiteral(svalue);
                         }
@@ -349,7 +352,7 @@ public class OWLAPIPlugin implements IPlugin {
 
         @Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
-            OWLReasoner reasoner = moc.reasoner();
+            final OWLReasoner reasoner = moc.reasoner();
             LOGGER.info("result: consistent="+reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
@@ -358,7 +361,7 @@ public class OWLAPIPlugin implements IPlugin {
                 answer.output(emptytuple);
                 nogood.add(ctx.storeOutputAtom(emptytuple).negate());
             } else {
-                nogood.add(ctx.storeOutputAtom(emptytuple);
+                nogood.add(ctx.storeOutputAtom(emptytuple));
             }
             ctx.learn(nogood);
             return answer;
@@ -370,14 +373,14 @@ public class OWLAPIPlugin implements IPlugin {
             super("dlC", Arrays.asList(new InputType[] { InputType.CONSTANT }), 1);
         }
 
-        @Override
+        //@Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
-            OWLReasoner reasoner = moc.reasoner();
+            final OWLReasoner reasoner = moc.reasoner();
             LOGGER.info("result: consistent="+reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-            if( !oc.reasoner().isConsistent() ) {
+            if( !moc.reasoner().isConsistent() ) {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
@@ -400,26 +403,26 @@ public class OWLAPIPlugin implements IPlugin {
 
                     answer.output(t);
 
-                    HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
+                    final HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
                     here_nogood.add(ctx.storeOutputAtom(t).negate());
                     ctx.learn(here_nogood);
                 });
             return answer;
         }
+    }
 
     public class ModifiedOntologyObjectPropertyQueryAtom extends ModifiedOntologyBaseAtom {
         public ModifiedOntologyObjectPropertyQueryAtom() {
             super("dlOP", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
         }
 
-        @Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
-            OWLReasoner reasoner = moc.reasoner();
+            final OWLReasoner reasoner = moc.reasoner();
             LOGGER.info("result: consistent="+reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-            if( !oc.reasoner().isConsistent() ) {
+            if( !moc.reasoner().isConsistent() ) {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
@@ -430,10 +433,10 @@ public class OWLAPIPlugin implements IPlugin {
             final String expandedQuery = moc.expandNamespace(opQuery);
             LOGGER.debug("expanded object property query to {}", () -> expandedQuery);
             final OWLObjectProperty op = moc.df().getOWLObjectProperty(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> cquery);
+            LOGGER.debug("querying ontology with expression {}", () -> op);
             moc.reasoner()
                 .objectPropertyDomains(op)
-                .flatMap(domainclass -> oc.reasoner().instances(domainclass, false))
+                .flatMap(domainclass -> moc.reasoner().instances(domainclass, false))
                 .distinct().forEach(domainindividual -> {
                     moc.reasoner()
                         .objectPropertyValues(domainindividual, op)
