@@ -348,29 +348,19 @@ public class OWLAPIPlugin implements IPlugin {
         }
 
         @Override
-        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            final String location = withoutQuotes(query.getInput().get(0).value());
-            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
-            final IOntologyContext oc = ontologyContext(location);
-            final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
-            final ISymbol delta_sel = query.getInput().get(2);
-            final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
+        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
+            OWLReasoner reasoner = moc.reasoner();
+            LOGGER.info("result: consistent="+reasoner.isConsistent());
+            final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-
-            LOGGER.info("applying changes ",modifications.toString());
-            oc.applyChanges(modifications);
-            try {
-                OWLReasoner reasoner = oc.reasoner();
-                LOGGER.info("result: consistent="+reasoner.isConsistent());
                 if( reasoner.isConsistent() ) {
-                    answer.output(new ArrayList<ISymbol>());
+                answer.output(emptytuple);
+                nogood.add(ctx.storeOutputAtom(emptytuple).negate());
+            } else {
+                nogood.add(ctx.storeOutputAtom(emptytuple);
                 }
-            } finally {
-                LOGGER.info("reverting changes");
-                oc.revertChanges(modifications);
-            }
-
+            ctx.learn(nogood);
             return answer;
         }
     }
