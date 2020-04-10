@@ -371,44 +371,40 @@ public class OWLAPIPlugin implements IPlugin {
         }
 
         @Override
-        public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            final String location = withoutQuotes(query.getInput().get(0).value());
-            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
-            final IOntologyContext oc = ontologyContext(location);
-
-            final Set<? extends List<ISymbol>> delta_ext = query.getInput().get(1).extension();
-            final ISymbol delta_sel = query.getInput().get(2);
-            final List<? extends OWLOntologyChange> modifications = extractModifications(oc, delta_ext, delta_sel);
+        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
+            OWLReasoner reasoner = moc.reasoner();
+            LOGGER.info("result: consistent="+reasoner.isConsistent());
+            final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-
-            LOGGER.info("applying changes ",modifications.toString());
-            oc.applyChanges(modifications);
-            try {
-                if( !oc.reasoner().isConsistent() )
+            if( !oc.reasoner().isConsistent() ) {
+                // make this atom false
+                // XXX is this a good idea? logic would say it is true
+                // cannot learn because do not know potential output tuples of this external atom
                     return answer;
+            }
 
                 final String opQuery = withoutQuotes(query.getInput().get(3).value());
-                final String expandedQuery = oc.expandNamespace(opQuery);
+            final String expandedQuery = moc.expandNamespace(opQuery);
                 LOGGER.debug("expanded query to {}", () -> expandedQuery);
-
-                final OWLClassExpression cquery = oc.df().getOWLClass(IRI.create(expandedQuery));
+            final OWLClassExpression cquery = moc.df().getOWLClass(IRI.create(expandedQuery));
                 LOGGER.debug("querying ontology with expression {}", () -> cquery);
-                oc.reasoner().getInstances(cquery, false /*get also direct instances*/).entities().forEach(domainindividual -> {
+            moc.reasoner()
+                .getInstances(cquery, false /*get also direct instances*/)
+                .entities()
+                .forEach(domainindividual -> {
                         LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
+                    HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
 
                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                         t.add(ctx.storeString(domainindividual.getIRI().toString()));
-                        answer.output(t);
-                    });
-            } finally {
-                LOGGER.info("reverting changes");
-                oc.revertChanges(modifications);
-            }
 
+                        answer.output(t);
+                    here_nogood.add(ctx.storeOutputAtom(t).negate());
+                    ctx.learn(here_nogood);
+                    });
             return answer;
         }
-    }
 
     public class ModifiedOntologyObjectPropertyQueryAtom extends ModifiedOntologyBaseAtom {
         public ModifiedOntologyObjectPropertyQueryAtom() {
