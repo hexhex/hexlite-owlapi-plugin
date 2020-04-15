@@ -8,7 +8,7 @@ def main():
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
 	s.install_jpype('d864253e7f') # 'v0.7.2'
-	s.reclone_hexlite('javapluginapi')
+	s.reclone_hexlite('c9782e1ca949')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
 	s.build_this_plugin()
