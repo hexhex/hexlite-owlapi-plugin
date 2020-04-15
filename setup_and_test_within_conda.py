@@ -103,7 +103,7 @@ class Setup:
 	def install_hexlite(self):
 		logging.info('installing hexlite')
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && cd hexlite/ && python setup.py develop --user >&2" % env)
+		self.__run_shell_get_stdout("source activate %s && cd hexlite/ && python setup.py install >&2" % env)
 
 	def build_this_plugin(self):
 		logging.info('building OWLAPI Plugin')
