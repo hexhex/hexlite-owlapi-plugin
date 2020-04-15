@@ -227,18 +227,18 @@ public class OWLAPIPlugin implements IPlugin {
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
             final String location = withoutQuotes(query.getInput().get(0).value());
-            LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
+            //LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
             final IOntologyContext oc = ontologyContext(location);
             final ISymbol delta_pred = query.getInput().get(1);
             final ISymbol delta_sel = query.getInput().get(2);
             final ModificationsContainer ontology_mods = extractModifications(
                 oc, query.getInterpretation(), delta_pred, delta_sel);
-            LOGGER.info("applying changes ",ontology_mods.changes.toString());
+            //LOGGER.info("applying changes ",ontology_mods.changes.toString());
             oc.applyChanges(ontology_mods.changes);
             try {
                 return retrieveDetail(ctx, query, oc, ontology_mods.nogood);
             } finally {
-                LOGGER.info("reverting changes");
+                //LOGGER.info("reverting changes");
                 oc.revertChanges(ontology_mods.changes);
             }
         }
@@ -249,9 +249,9 @@ public class OWLAPIPlugin implements IPlugin {
             final ModificationsContainer ret = new ModificationsContainer();
             for(final ISymbol atm : interpretation.getInputAtoms()) {
                 final ArrayList<ISymbol> atuple = atm.tuple();
-                System.err.println("input atom "+atm.toString()+" with tuple "+atuple.toString());
+                //System.err.println("input atom "+atm.toString()+" with tuple "+atuple.toString());
                 if( atuple.get(0) == delta_pred && atuple.get(2) == delta_sel ) {
-                    System.err.println("  relevant with truth value "+atm.isTrue());
+                    //System.err.println("  relevant with truth value "+atm.isTrue());
                     if( atm.isTrue() ) {
                         ret.nogood.add(atm);
                         final List<? extends ISymbol> childtuple = atuple.get(1).tuple();
