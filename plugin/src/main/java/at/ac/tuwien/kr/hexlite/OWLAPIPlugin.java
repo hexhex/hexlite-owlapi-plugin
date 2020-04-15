@@ -249,16 +249,18 @@ public class OWLAPIPlugin implements IPlugin {
             final ModificationsContainer ret = new ModificationsContainer();
             for(final ISymbol atm : interpretation.getInputAtoms()) {
                 final ArrayList<ISymbol> atuple = atm.tuple();
-                //System.err.println("input atom "+atm.toString()+" with tuple "+atuple.toString());
-                if( atuple.get(0) == delta_pred && atuple.get(2) == delta_sel ) {
-                    //System.err.println("  relevant with truth value "+atm.isTrue());
+                LOGGER.info("input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
+                if( atuple.get(0).equals(delta_pred) && atuple.get(1).equals(delta_sel) ) {
+                    LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
                     if( atm.isTrue() ) {
                         ret.nogood.add(atm);
-                        final List<? extends ISymbol> childtuple = atuple.get(1).tuple();
+                        final List<? extends ISymbol> childtuple = atuple.get(2).tuple();
                         extractSingleModification(ctx, childtuple, ret);
                     } else {
                         ret.nogood.add(atm.negate());
                     }
+                } else {
+                    LOGGER.info("..is irrelevant for delta_pred {} and delta_sel {}", () -> delta_pred.toString(), () -> delta_sel.toString());
                 }
             }
             return ret;
@@ -353,7 +355,7 @@ public class OWLAPIPlugin implements IPlugin {
         @Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
             final OWLReasoner reasoner = moc.reasoner();
-            LOGGER.info("result: consistent="+reasoner.isConsistent());
+            LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
@@ -376,7 +378,7 @@ public class OWLAPIPlugin implements IPlugin {
         //@Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
             final OWLReasoner reasoner = moc.reasoner();
-            LOGGER.info("result: consistent="+reasoner.isConsistent());
+            LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
