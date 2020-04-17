@@ -1,0 +1,20 @@
+#const finaltimestep=5.
+
+:- box(B), not state(B,painted,finaltimestep).
+
+% deactivate as many robots as possible
+{ explanation(deactivate(R)) } :- robot(R).
+:~ not explanation(deactivate(R)), robot(R). [1@2,R]
+% deactivated robots cannot do actions
+:- explanation(deactivate(R)), actStep(S), do(action(_,R,_),T).
+
+% make as few actions as possible and make them as early as possible
+:~ do(A,T). [T+1@1,A]
+
+%#show box/1.
+%#show robot/1.
+#show state/3.
+#show do/2.
+#show explanation/1.
+%#show dbg/1.
+

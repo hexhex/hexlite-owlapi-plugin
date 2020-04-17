@@ -1,0 +1,7 @@
+{
+  "load-uri": "sample.owl",
+  "namespaces": {
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "ex": "http://www.kr.tuwien.ac.at/projects/hexlite/example#"
+  }
+}

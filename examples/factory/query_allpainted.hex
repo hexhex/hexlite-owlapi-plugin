@@ -1,0 +1,13 @@
+#const finaltimestep=3.
+
+:- box(B), not state(B,painted,finaltimestep).
+
+% make as few actions as possible and make them as early as possible
+:~ do(A,T). [T+1,A]
+
+%#show box/1.
+%#show robot/1.
+#show state/3.
+#show do/2.
+%#show dbg/1.
+

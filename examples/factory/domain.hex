@@ -1,0 +1,57 @@
+
+#const onto="meta.json".
+
+% timesteps
+step(0..finaltimestep). 
+next(T,T+1) :- step(T), step(T+1). 
+actStep(T) :- next(T,_). 
+
+% robots and boxes are taken from the ontology
+robot(Robot) :- &dlCro[onto,"ex:Robot"](Robot).
+
+% initial state
+box(Box) :- &dlCro[onto,"ex:Box"](Box).
+state(Box,open,0) :- &dlCro[onto,"ex:OpenBox"](Box).
+state(Box,closed,0) :- &dlCro[onto,"ex:ClosedBox"](Box).
+
+% we could guess like this
+%aux_openbox(Box) :- &dlCro[onto,"ex:OpenBox"](Box).
+%aux_closedbox(Box) :- &dlCro[onto,"ex:ClosedBox"](Box).
+%1 { state(Box,open,0) ; state(Box, closed,0) } 1 :- box(Box), not aux_openbox(Box), not aux_closedbox(Box).
+
+% fluent inertia and mutual exclusivity of open and closed 
+state(A,B,T') :- state(A,B,T), next(T,T'), not -state(A,B,T'). 
+-state(Box,closed,T) :- state(Box,open,T).
+-state(Box,open,T) :- state(Box,closed,T).
+
+% the state of open/closed is propagated into the ontology 
+delta(T,addc("ex:ClosedBox",Box)) :- state(Box,closed,T). 
+delta(T,delc("ex:OpenBox",Box)) :- state(Box,closed,T).
+delta(T,addc("ex:OpenBox",Box)) :- state(Box,open,T). 
+delta(T,delc("ex:ClosedBox",Box)) :- state(Box,open,T).
+
+% require consistent state
+:- not &dlConsistent[onto,delta,T], step(T). % TODO fix bug in hexlite: not saving T in above rule gives an unintuitive parser error
+
+% actions are licensed through the ontology 
+{ do(action(open,Robot,Box),T) } :- actStep(T),
+   &dlC[onto,delta,T,"ex:AffordsOpening"](Box), box(Box),
+   &dlC[onto,delta,T,"ex:MRobot"](Robot), robot(Robot). 
+{ do(action(close,Robot,Box),T) } :- actStep(T),
+   &dlC[onto,delta,T,"ex:AffordsClosing"](Box), box(Box),
+   &dlC[onto,delta,T,"ex:MRobot"](Robot), robot(Robot).
+{ do(action(paint,Robot,Box),T) } :- actStep(T),
+   &dlC[onto,delta,T,"ex:AffordsPainting"](Box), box(Box),
+   &dlC[onto,delta,T,"ex:PRobot"](Robot), robot(Robot).
+
+% only one action per robot per time point 
+:- step(T), robot(R), 2 <= #count { A,B : do(action(A,R,B),T) }. 
+% only one action per box per time point 
+:- step(T), box(B), 2 <= #count { A,R : do(action(A,R,B),T) }. 
+
+% action effects 
+state(Box,open,T') :- do(action(open,Robot,Box),T), next(T,T'). 
+state(Box,closed,T') :- do(action(close,Robot,Box),T), next(T,T'). 
+state(Box,painted,T') :- do(action(paint,Robot,Box),T), next(T,T').
+
+% vim:syntax=prolog:

@@ -1,0 +1,165 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://www.semanticweb.org/ps/ontologies/2020/1/untitled-ontology-2#"
+     xml:base="http://www.semanticweb.org/ps/ontologies/2020/1/untitled-ontology-2"
+     xmlns:ex="http://www.kr.tuwien.ac.at/projects/hexlite/example#"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#Affordance -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#Affordance"/>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsClosing -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsClosing">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Affordance"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsOpening -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsOpening">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Affordance"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsPainting -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsPainting">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Affordance"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#Box -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#Box"/>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#ClosedBox -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#ClosedBox">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsOpening"/>
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsPainting"/>
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Box"/>
+        <owl:disjointWith rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#OpenBox"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#MRobot -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#MRobot">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Robot"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#OpenBox -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#OpenBox">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#AffordsClosing"/>
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Box"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#PRobot -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#PRobot">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Robot"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#PaintedBox -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#PaintedBox">
+        <rdfs:subClassOf rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#Box"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#Robot -->
+
+    <owl:Class rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#Robot"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#b1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#b1">
+        <rdf:type rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#OpenBox"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#b2 -->
+
+    <owl:NamedIndividual rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#b2">
+        <rdf:type rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#OpenBox"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#b3 -->
+
+    <owl:NamedIndividual rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#b3">
+        <rdf:type rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#ClosedBox"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#r1 -->
+
+    <owl:NamedIndividual rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#r1">
+        <rdf:type rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#MRobot"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://www.kr.tuwien.ac.at/projects/hexlite/example#r2 -->
+
+    <owl:NamedIndividual rdf:about="http://www.kr.tuwien.ac.at/projects/hexlite/example#r2">
+        <rdf:type rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#MRobot"/>
+        <rdf:type rdf:resource="http://www.kr.tuwien.ac.at/projects/hexlite/example#PRobot"/>
+    </owl:NamedIndividual>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+
