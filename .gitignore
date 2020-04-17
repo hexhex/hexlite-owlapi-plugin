@@ -13,3 +13,7 @@ buildNumber.properties
 
 .classpath
 .project
+
+# backup and swap files
+*~
+.*.sw*
