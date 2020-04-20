@@ -61,8 +61,8 @@ class Setup:
 	def recreate_conda_environment(self):
 		env = self.config['env']
 		assert(env != 'base')
-		self.__run_shell_get_stdout('conda env remove --name %s >&2' % env, allow_fail=True)
-		self.__run_shell_get_stdout('conda create --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
+		self.__run_shell_get_stdout('conda env remove -y --name %s >&2' % env, allow_fail=True)
+		self.__run_shell_get_stdout('conda create -y --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
 	def install_jpype_via_build(self, github_ref):
@@ -88,7 +88,7 @@ class Setup:
 
 	def install_jpype_via_conda(self):
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && conda install -c conda-forge jpype1 >&2" % (env,))
+		self.__run_shell_get_stdout("source activate %s && conda install -y -c conda-forge jpype1 >&2" % (env,))
 
 	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
