@@ -28,6 +28,7 @@ import at.ac.tuwien.kr.hexlite.api.IPlugin;
 import at.ac.tuwien.kr.hexlite.api.IPluginAtom;
 import at.ac.tuwien.kr.hexlite.api.IPluginAtom.InputType;
 import at.ac.tuwien.kr.hexlite.api.ISolverContext;
+import at.ac.tuwien.kr.hexlite.api.ISolverContext.StoreAtomException;
 import at.ac.tuwien.kr.hexlite.api.ISymbol;
 import at.ac.tuwien.kr.hexlite.api.IInterpretation;
 
@@ -359,13 +360,21 @@ public class OWLAPIPlugin implements IPlugin {
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
-            if( reasoner.isConsistent() ) {
+            boolean consistent = reasoner.isConsistent();
+            if( consistent ) {
                 answer.output(emptytuple);
-                nogood.add(ctx.storeOutputAtom(emptytuple).negate());
-            } else {
-                nogood.add(ctx.storeOutputAtom(emptytuple));
             }
-            ctx.learn(nogood);
+
+            try {
+                if (consistent) {
+                    nogood.add(ctx.storeOutputAtom(emptytuple).negate());
+                } else {
+                    nogood.add(ctx.storeOutputAtom(emptytuple));
+                }
+                ctx.learn(nogood);
+            } catch(StoreAtomException e) {
+                // ignore
+            }
             return answer;
         }
     }
@@ -405,9 +414,13 @@ public class OWLAPIPlugin implements IPlugin {
 
                     answer.output(t);
 
-                    final HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
-                    here_nogood.add(ctx.storeOutputAtom(t).negate());
-                    ctx.learn(here_nogood);
+                    try {
+                        final HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
+                        here_nogood.add(ctx.storeOutputAtom(t).negate());
+                        ctx.learn(here_nogood);
+                    } catch(StoreAtomException e) {
+                        // ignore
+                    }
                 });
             return answer;
         }
@@ -451,9 +464,13 @@ public class OWLAPIPlugin implements IPlugin {
                             
                             answer.output(t);
 
-                            HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
-                            here_nogood.add(ctx.storeOutputAtom(t).negate());
-                            ctx.learn(here_nogood);                           
+                            try {
+                                HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
+                                here_nogood.add(ctx.storeOutputAtom(t).negate());
+                                ctx.learn(here_nogood);                           
+                            } catch(StoreAtomException e) {
+                                // ignore
+                            }
                         });
                 });
             return answer;
