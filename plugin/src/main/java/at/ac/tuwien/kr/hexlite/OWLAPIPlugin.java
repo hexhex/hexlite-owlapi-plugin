@@ -74,6 +74,7 @@ public class OWLAPIPlugin implements IPlugin {
             }
             outputArguments = _outputArguments;
             properties = new ExtSourceProperties();
+            properties.setDoInputOutputLearning(false);
         }
 
         @Override
