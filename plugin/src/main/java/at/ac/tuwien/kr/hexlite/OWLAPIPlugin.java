@@ -123,9 +123,9 @@ public class OWLAPIPlugin implements IPlugin {
 
             final Answer answer = new Answer();
             final OWLClassExpression owlquery = oc.df().getOWLClass(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> owlquery);
+            LOGGER.info("querying unmodified ontology with expression {}", () -> owlquery);
             oc.reasoner().getInstances(owlquery, false).entities().forEach(instance -> {
-                LOGGER.debug("found instance {}", () -> instance);
+                LOGGER.info("found instance {}", () -> instance);
                 final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                 t.add(ctx.storeString(instance.getIRI().toString()));
                 answer.output(t);
