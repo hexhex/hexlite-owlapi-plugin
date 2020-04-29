@@ -74,7 +74,9 @@ public class OWLAPIPlugin implements IPlugin {
             }
             outputArguments = _outputArguments;
             properties = new ExtSourceProperties();
-            properties.setDoInputOutputLearning(false);
+            // this prevents hints to the solver in case of false external computations (unseen output constants)
+            // -> do not do this!
+            //properties.setDoInputOutputLearning(false);
         }
 
         @Override
