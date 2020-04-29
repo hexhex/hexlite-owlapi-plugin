@@ -254,11 +254,13 @@ public class OWLAPIPlugin implements IPlugin {
                 LOGGER.info("input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
                 if( atuple.get(0).equals(delta_pred) && atuple.get(1).equals(delta_sel) ) {
                     LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
+                    // atm is always represented as positive, so if the truth value is negative we must add its negated literal
                     if( atm.isTrue() ) {
                         ret.nogood.add(atm);
                         final List<? extends ISymbol> childtuple = atuple.get(2).tuple();
                         extractSingleModification(ctx, childtuple, ret);
                     } else {
+                        // no modification, but the result we compute still depends on the falsity of atm
                         ret.nogood.add(atm.negate());
                     }
                 } else {
@@ -388,7 +390,6 @@ public class OWLAPIPlugin implements IPlugin {
         //@Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
             final OWLReasoner reasoner = moc.reasoner();
-            LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
@@ -396,6 +397,7 @@ public class OWLAPIPlugin implements IPlugin {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
+                LOGGER.info("result (dlC): inconsistent!");
                 return answer;
             }
 
@@ -413,6 +415,7 @@ public class OWLAPIPlugin implements IPlugin {
                     final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                     t.add(ctx.storeString(domainindividual.getIRI().toString()));
 
+                    LOGGER.info("result (dlC): consistent and found {}", () -> domainindividual.getIRI().toString());
                     answer.output(t);
 
                     try {
@@ -434,7 +437,6 @@ public class OWLAPIPlugin implements IPlugin {
 
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
             final OWLReasoner reasoner = moc.reasoner();
-            LOGGER.info("result: consistent="+reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
@@ -442,6 +444,7 @@ public class OWLAPIPlugin implements IPlugin {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
+                LOGGER.info("result (dlOP): inconsistent");
                 return answer;
             }
 
@@ -463,6 +466,7 @@ public class OWLAPIPlugin implements IPlugin {
                             t.add(ctx.storeString(domainindividual.getIRI().toString()));
                             t.add(ctx.storeString(value.getIRI().toString()));
                             
+                            LOGGER.info("result (dlOP): consistent and found {}/{}", () -> domainindividual.getIRI().toString(), () -> value.getIRI().toString());
                             answer.output(t);
 
                             try {
