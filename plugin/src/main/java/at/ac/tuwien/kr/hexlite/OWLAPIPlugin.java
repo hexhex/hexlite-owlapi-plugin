@@ -273,37 +273,36 @@ public class OWLAPIPlugin implements IPlugin {
         }
 
         protected void extractSingleModification(final IOntologyContext ctx, final List<? extends ISymbol> child, final ModificationsContainer out) {
-            // alias for historical reasons
-            final List<OWLOntologyChange> ret = out.changes;
-
             final String mtype = child.get(0).value();
             final List<IRI> argumentIRIs = new ArrayList<IRI>(child.size()-1);
             for( final ISymbol arg : child.subList(1,child.size()) ) {
                 argumentIRIs.add(IRI.create(ctx.expandNamespace(withoutQuotes(arg.value()))));
             }
             //LOGGER.info(" argumentIRIs = "+argumentIRIs);
+            final List<OWLOntologyChange> deletes = new ArrayList<OWLOntologyChange>();
+            final List<OWLOntologyChange> adds = new ArrayList<OWLOntologyChange>();
             switch (mtype) {
             case "addc":
-                ret.add(new AddAxiom(ctx.ontology(),
+                adds.add(new AddAxiom(ctx.ontology(),
                         ctx.df().getOWLClassAssertionAxiom(
                             ctx.df().getOWLClass(argumentIRIs.get(0)),
                             ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
                 break;
             case "delc":
-                ret.add(new RemoveAxiom(ctx.ontology(),
+                deletes.add(new RemoveAxiom(ctx.ontology(),
                         ctx.df().getOWLClassAssertionAxiom(
                             ctx.df().getOWLClass(argumentIRIs.get(0)),
                             ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)))));
                 break;
             case "addop":
-                ret.add(new AddAxiom(ctx.ontology(),
+                adds.add(new AddAxiom(ctx.ontology(),
                         ctx.df().getOWLObjectPropertyAssertionAxiom(
                             ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
                             ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
                             ctx.df().getOWLNamedIndividual(argumentIRIs.get(2)))));
                 break;
             case "delop":
-                ret.add(new RemoveAxiom(ctx.ontology(),
+                deletes.add(new RemoveAxiom(ctx.ontology(),
                         ctx.df().getOWLObjectPropertyAssertionAxiom(
                             ctx.df().getOWLObjectProperty(argumentIRIs.get(0)),
                             ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
@@ -335,7 +334,7 @@ public class OWLAPIPlugin implements IPlugin {
                             literal = ctx.df().getOWLLiteral(svalue);
                         }
                     }                            
-                    ret.add(new AddAxiom(ctx.ontology(),
+                    adds.add(new AddAxiom(ctx.ontology(),
                             ctx.df().getOWLDataPropertyAssertionAxiom(
                                 ctx.df().getOWLDataProperty(argumentIRIs.get(0)),
                                 ctx.df().getOWLNamedIndividual(argumentIRIs.get(1)),
@@ -346,7 +345,9 @@ public class OWLAPIPlugin implements IPlugin {
                 LOGGER.error("delta modification of ontology got unknown type '" + mtype
                         + "' (can be {add,del}{c,op,dp}) - ignoring");
             }
-        }
+            out.changes.addAll(deletes);
+            out.changes.addAll(adds);
+        }        
     }
 
     public class ModifiedOntologyConsistentAtom extends ModifiedOntologyBaseAtom {
