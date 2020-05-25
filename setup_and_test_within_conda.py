@@ -7,10 +7,9 @@ def main():
 	s.interpret_arguments(sys.argv)
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
-	#s.install_jpype_via_build('v0.7.2')
+	#s.install_jpype_via_build('v0.7.5')
 	s.install_jpype_via_conda()
-	s.reclone_hexlite('exception')
-	#s.reclone_hexlite('v1.1.0')
+	s.reclone_hexlite('v1.2.0')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
 	s.build_this_plugin()
@@ -63,7 +62,7 @@ class Setup:
 		env = self.config['env']
 		assert(env != 'base')
 		self.__run_shell_get_stdout('conda env remove -y --name %s >&2' % env, allow_fail=True)
-		self.__run_shell_get_stdout('conda create -y --name %s -c potassco clingo python=%s ant maven >&2' % (env, self.PYTHONVER))
+		self.__run_shell_get_stdout('conda create -y --name %s -c potassco clingo python=%s ant maven pandas >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
 	def install_jpype_via_build(self, github_ref):
@@ -89,7 +88,7 @@ class Setup:
 
 	def install_jpype_via_conda(self):
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && conda install -y -c conda-forge jpype1 >&2" % (env,))
+		self.__run_shell_get_stdout("source activate %s && conda install -y -c conda-forge jpype1=0.7.3 >&2" % (env,))
 
 	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
@@ -117,7 +116,7 @@ class Setup:
 
 	def run_example(self, directory, hexfile):
 		env = self.config['env']
-		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 33"
+		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 33" 
 		#call += ' --verbose'
 		logging.warning("TODO fix bug in FLP checker (parser?)")
 		call += ' --flpcheck=none'
