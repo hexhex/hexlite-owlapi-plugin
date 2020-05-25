@@ -380,6 +380,7 @@ public class OWLAPIPlugin implements IPlugin {
                 ctx.learn(nogood);
             } catch(StoreAtomException e) {
                 // ignore
+                LOGGER.info("dlConsistent ignoring exception {}", () -> e.toString());
             }
             return answer;
         }
@@ -427,6 +428,7 @@ public class OWLAPIPlugin implements IPlugin {
                         ctx.learn(here_nogood);
                     } catch(StoreAtomException e) {
                         // ignore
+                        LOGGER.info("dlC ignoring exception {}", () -> e.toString());
                     }
                 });
             return answer;
@@ -478,6 +480,7 @@ public class OWLAPIPlugin implements IPlugin {
                                 ctx.learn(here_nogood);                           
                             } catch(StoreAtomException e) {
                                 // ignore
+                                LOGGER.info("dlOP ignoring exception {}", () -> e.toString());
                             }
                         });
                 });
