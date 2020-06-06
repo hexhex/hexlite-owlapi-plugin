@@ -21,7 +21,13 @@ delta(hwalt,adddp("koala:isHardWorking",A,true)) :- makehardworking(A).
 modifications(qalt;rfalt;hwalt).
 
 % require that the result is consistent
-:- not &dlConsistent[onto,delta,ID], modifications(ID).
+%:- not &dlConsistent[onto,delta,ID], modifications(ID).
+
+% alternative: require that something that was an animal before is still an animal
+animal(A) :- &dlCro[onto,"koala:Animal"](A).
+:- not &dlC[onto,delta,hwalt,"koala:Animal"](A), animal(A).
+:- not &dlC[onto,delta,qalt,"koala:Animal"](A), animal(A).
+:- not &dlC[onto,delta,rfalt,"koala:Animal"](A), animal(A).
 
 hdelta(M,addc(A',B')) :- delta(M,addc(A,B)),
    &dlSimplifyIRI[onto,A](A'), &dlSimplifyIRI[onto,B](B').
