@@ -1,7 +1,7 @@
 package at.ac.tuwien.kr.hexlite;
 
 import java.util.AbstractCollection;
-import java.util.AbstractMap;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,9 +33,9 @@ import at.ac.tuwien.kr.hexlite.api.ISymbol;
 import at.ac.tuwien.kr.hexlite.api.IInterpretation;
 
 public class OWLAPIPlugin implements IPlugin {
-    private static final Logger LOGGER = LogManager.getLogger("Hexlite-OWLAPIPlugin");
+    private static final Logger LOGGER = LogManager.getLogger("HexOWLAPI");
 
-    private final AbstractMap<String, IOntologyContext> cachedContexts;
+    private final Map<String, IOntologyContext> cachedContexts;
 
     public OWLAPIPlugin() {
         cachedContexts = new HashMap<String, IOntologyContext>();
