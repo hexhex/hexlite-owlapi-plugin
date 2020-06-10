@@ -210,12 +210,19 @@ public class OWLAPIPlugin implements IPlugin {
 
     public abstract class ModifiedOntologyBaseAtom extends BaseAtom {
         protected class ModificationsContainer {
-            public HashSet<ISymbol> nogood;
+            public HashMap<ISymbol, HashSet<ISymbol> > nogoodBySelector;
             public List<OWLOntologyChange> changes;
 
             public ModificationsContainer() {
                 changes = new LinkedList<OWLOntologyChange>();
-                nogood = new HashSet<ISymbol>();       
+                nogoodBySelector = new HashMap<ISymbol, HashSet<ISymbol> >();
+            }
+
+            public addToNogood(ISymbol selector, ISymbol literalToAdd) {
+                if( !nogoodBySelector.containsKey(selector) ) {
+                    nogoodBySelector.put(selector, new HashSet<ISymbol>());                    
+                }
+                nogoodBySelector.get(selector).add(literalToAdd);
             }
         }
 
@@ -258,12 +265,12 @@ public class OWLAPIPlugin implements IPlugin {
                     LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
                     // atm is always represented as positive, so if the truth value is negative we must add its negated literal
                     if( atm.isTrue() ) {
-                        ret.nogood.add(atm);
+                        ret.addToNogood(delta_sel, atm);
                         final List<? extends ISymbol> childtuple = atuple.get(2).tuple();
                         extractSingleModification(ctx, childtuple, ret);
                     } else {
                         // no modification, but the result we compute still depends on the falsity of atm
-                        ret.nogood.add(atm.negate());
+                        ret.addToNogood(delta_sel, atm.negate());
                     }
                 } else {
                     LOGGER.info("..is irrelevant for delta_pred {} and delta_sel {}", () -> delta_pred.toString(), () -> delta_sel.toString());
