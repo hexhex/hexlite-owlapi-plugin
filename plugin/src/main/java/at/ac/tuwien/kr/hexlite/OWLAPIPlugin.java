@@ -259,9 +259,18 @@ public class OWLAPIPlugin implements IPlugin {
         protected ModificationsContainer extractModifications(final IOntologyContext ctx, final IInterpretation interpretation, final ISymbol delta_pred, final ISymbol delta_sel) {
             final ModificationsContainer ret = new ModificationsContainer();
             for(final ISymbol atm : interpretation.getInputAtoms()) {
+                // going over all instantiated relevant input atoms, also those that are false
+
                 final ArrayList<ISymbol> atuple = atm.tuple();
                 LOGGER.info("input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
                 if( atuple.get(0).equals(delta_pred) && atuple.get(1).equals(delta_sel) ) {
+
+TODO we need to extractSingleModification for those that are true for the current delta_pred
+at the same time we need to store (independent of truth value) the same polarity of all other input atoms (by selector)
+maybe we need 2 passes:
+* do what we did so far, just extract the true values, but also store positive and negative tuples in a hashed way
+* go over all inputs and compare with positive/negative hashes to extract for each selector the literals of right polarity
+
                     LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
                     // atm is always represented as positive, so if the truth value is negative we must add its negated literal
                     if( atm.isTrue() ) {
