@@ -210,19 +210,40 @@ public class OWLAPIPlugin implements IPlugin {
 
     public abstract class ModifiedOntologyBaseAtom extends BaseAtom {
         protected class ModificationsContainer {
+            public ISymbol onto;
+            public ISymbol predicate;
             public HashMap<ISymbol, HashSet<ISymbol> > nogoodBySelector;
             public List<OWLOntologyChange> changes;
 
-            public ModificationsContainer() {
+            public ModificationsContainer(ISymbol onto, ISymbol predicate) {
+                onto = onto;
+                predicate = predicate;
                 changes = new LinkedList<OWLOntologyChange>();
                 nogoodBySelector = new HashMap<ISymbol, HashSet<ISymbol> >();
             }
 
-            public addToNogood(ISymbol selector, ISymbol literalToAdd) {
+            public void addToNogood(ISymbol selector, ISymbol literalToAdd) {
                 if( !nogoodBySelector.containsKey(selector) ) {
                     nogoodBySelector.put(selector, new HashSet<ISymbol>());                    
                 }
                 nogoodBySelector.get(selector).add(literalToAdd);
+            }
+
+            public void generateNogoodsForOutput(ISolverContext ctx, int output_index, ISymbol output) {
+                // go over all potential output atoms and check if we have nogoods
+                for( final ISymbol output_atom : ctx.getInstantiatedOutputAtoms() ) {
+                    final ArrayList<ISymbol> output_tuple = output_atom.tuple();
+                    if( output_tuple.get(0) != onto || output_tuple.get(1) != predicate || output_tuple.get(output_index) != output )
+                        continue;
+                    final ISymbol selector = output_tuple.get(2);
+                    if( nogoodBySelector.containsKey(selector) ) {
+                        LOGGER.info("generateNogoodsForOutput for output ", output.toString(), " in index ", output_index, " found nogood for selector ", selector.toString());
+                        // maybe we don't need to copy, but let's stay on the safe side
+                        final HashSet<ISymbol> nogood = new HashSet<ISymbol>(nogoodBySelector.get(selector));
+                        nogood.add(output_atom.negate());
+                        ctx.learn(nogood);
+                    }
+                }
             }
         }
 
@@ -237,54 +258,85 @@ public class OWLAPIPlugin implements IPlugin {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            final String location = withoutQuotes(query.getInput().get(0).value());
+            final ISymbol onto = query.getInput().get(0);
+            final String location = withoutQuotes(onto.value());
             //LOGGER.info("{} retrieving with ontoURI={}", () -> getPredicate(), () -> location);
             final IOntologyContext oc = ontologyContext(location);
             final ISymbol delta_pred = query.getInput().get(1);
             final ISymbol delta_sel = query.getInput().get(2);
             final ModificationsContainer ontology_mods = extractModifications(
-                oc, query.getInterpretation(), delta_pred, delta_sel);
+                oc, query.getInterpretation(), onto, delta_pred, delta_sel);
             //LOGGER.info("applying changes ",ontology_mods.changes.toString());
             oc.applyChanges(ontology_mods.changes);
             try {
-                return retrieveDetail(ctx, query, oc, ontology_mods.nogood);
+                return retrieveDetail(ctx, query, oc, ontology_mods);
             } finally {
                 //LOGGER.info("reverting changes");
                 oc.revertChanges(ontology_mods.changes);
             }
         }
 
-        public abstract Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood);
+        public abstract Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcontainer);
 
-        protected ModificationsContainer extractModifications(final IOntologyContext ctx, final IInterpretation interpretation, final ISymbol delta_pred, final ISymbol delta_sel) {
-            final ModificationsContainer ret = new ModificationsContainer();
+        protected ModificationsContainer extractModifications(final IOntologyContext ctx, final IInterpretation interpretation, final ISymbol onto, final ISymbol delta_pred, final ISymbol delta_sel) {
+            // here we get all relevant input atoms for this ground instantiation
+            // therefore we can only collect nogoods for calls with the same predicate inputs and with the same or different constant inputs
+            // we collect one modification of the ontology based on 
+            // * current predicate input (predicate, 1st argument)
+            // * current constant input (selector, 2nd argument)
+            // we create a nogood for this input
+            // we also create all alternative nogoods for all alternative selectors (2nd argument)
+            //
+            // we do this in 2 passes:
+            // pass 1:
+            // * use actual selector and selection
+            // * build modification
+            // * remember tuples and their polarity
+            // pass 2:
+            // * use tuples and polarity to build nogoods for all selectors
+
+            final HashSet<ArrayList<ISymbol> > positiveTuples = new HashSet<ArrayList<ISymbol> >();
+            final HashSet<ArrayList<ISymbol> > negativeTuples = new HashSet<ArrayList<ISymbol> >();
+            final ModificationsContainer ret = new ModificationsContainer(onto, delta_pred);
+
+            // pass 1: record positive/negative tuples and extract modification
             for(final ISymbol atm : interpretation.getInputAtoms()) {
                 // going over all instantiated relevant input atoms, also those that are false
 
                 final ArrayList<ISymbol> atuple = atm.tuple();
-                LOGGER.info("input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
+                LOGGER.info("pass 1 input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
                 if( atuple.get(0).equals(delta_pred) && atuple.get(1).equals(delta_sel) ) {
-
-TODO we need to extractSingleModification for those that are true for the current delta_pred
-at the same time we need to store (independent of truth value) the same polarity of all other input atoms (by selector)
-maybe we need 2 passes:
-* do what we did so far, just extract the true values, but also store positive and negative tuples in a hashed way
-* go over all inputs and compare with positive/negative hashes to extract for each selector the literals of right polarity
-
                     LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
+                    final ArrayList<ISymbol> childtuple = atuple.get(2).tuple();
+
                     // atm is always represented as positive, so if the truth value is negative we must add its negated literal
                     if( atm.isTrue() ) {
-                        ret.addToNogood(delta_sel, atm);
-                        final List<? extends ISymbol> childtuple = atuple.get(2).tuple();
+                        positiveTuples.add(childtuple);
                         extractSingleModification(ctx, childtuple, ret);
                     } else {
                         // no modification, but the result we compute still depends on the falsity of atm
-                        ret.addToNogood(delta_sel, atm.negate());
+                        negativeTuples.add(childtuple);
                     }
                 } else {
                     LOGGER.info("..is irrelevant for delta_pred {} and delta_sel {}", () -> delta_pred.toString(), () -> delta_sel.toString());
                 }
             }
+
+            // pass 2: build all nogoods of all selectors with same polarity as above
+            for(final ISymbol atm : interpretation.getInputAtoms()) {
+                final ArrayList<ISymbol> atuple = atm.tuple();
+                LOGGER.info("pass 2 input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
+                if( atuple.get(0).equals(delta_pred) ) {
+                    final ISymbol selector = atuple.get(1);
+                    final ArrayList<ISymbol> childtuple = atuple.get(2).tuple();
+                    if( positiveTuples.contains(childtuple) ) {
+                        ret.addToNogood(selector, atm);
+                    } else if( negativeTuples.contains(childtuple) ) {
+                        ret.addToNogood(selector, atm.negate());
+                    }
+                }
+            }
+
             return ret;
         }
 
@@ -408,7 +460,7 @@ maybe we need 2 passes:
         }
 
         //@Override
-        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
+        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcon) {
             final OWLReasoner reasoner = moc.reasoner();
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
@@ -432,20 +484,15 @@ maybe we need 2 passes:
                 .forEach(domainindividual -> {
                     LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
 
-                    final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
-                    t.add(ctx.storeString(domainindividual.getIRI().toString()));
-
+                    final ISymbol trueOutput = ctx.storeString(domainindividual.getIRI().toString());
                     LOGGER.info("result (dlC): consistent and found {}", () -> domainindividual.getIRI().toString());
+
+                    final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
+                    t.add(trueOutput);
                     answer.output(t);
 
-                    try {
-                        final HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
-                        here_nogood.add(ctx.storeOutputAtom(t).negate());
-                        ctx.learn(here_nogood);
-                    } catch(StoreAtomException e) {
-                        // ignore
-                        LOGGER.info("dlC ignoring exception {}", () -> e.toString());
-                    }
+                    // 4, because the output constant is the 5th element in the total replacement tuple [onto,delta,selector,query](output)
+                    modcon.generateNogoodsForOutput(ctx, 4, trueOutput);
                 });
             return answer;
         }
