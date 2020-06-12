@@ -220,6 +220,7 @@ public class OWLAPIPlugin implements IPlugin {
                 predicate = _predicate;
                 changes = new LinkedList<OWLOntologyChange>();
                 nogoodBySelector = new HashMap<ISymbol, HashSet<ISymbol> >();
+                //LOGGER.info("ModificationsContainer with onto {} and predicate {}", onto.toString(), predicate.toString());
             }
 
             public void addToNogood(ISymbol selector, ISymbol literalToAdd) {
@@ -231,13 +232,19 @@ public class OWLAPIPlugin implements IPlugin {
 
             public void generateNogoodsForOutput(ISolverContext ctx, int output_index, ISymbol output) {
                 // go over all potential output atoms and check if we have nogoods
+                //LOGGER.info("generateNogoodsForOutputfor for output_index {} and output {} ...",  () -> output_index, () -> output.toString());
                 for( final ISymbol output_atom : ctx.getInstantiatedOutputAtoms() ) {
                     final ArrayList<ISymbol> output_tuple = output_atom.tuple();
-                    if( output_tuple.get(0) != onto || output_tuple.get(1) != predicate || output_tuple.get(output_index) != output )
+                    final boolean ontomatch = output_tuple.get(1).equals(onto);
+                    final boolean predmatch = output_tuple.get(2).equals(predicate);
+                    final boolean outputmatch = output_tuple.get(output_index).equals(output);
+                    //LOGGER.info(" ... processing output atom {} withtuple {} matches {} {} {}", output_atom.toString(), output_tuple.toString(), ontomatch, predmatch, outputmatch);
+                    if( !ontomatch || !predmatch || !outputmatch )
                         continue;
-                    final ISymbol selector = output_tuple.get(2);
+                    final ISymbol selector = output_tuple.get(3);
+                    //LOGGER.info(" ... checking selector {}", () -> selector.toString());
                     if( nogoodBySelector.containsKey(selector) ) {
-                        LOGGER.info("generateNogoodsForOutput for output ", output.toString(), " in index ", output_index, " found nogood for selector ", selector.toString());
+                        //LOGGER.info(" ... adding nogood for output {} in index {} found nogood for selector {}", () -> output.toString(), () -> output_index, () -> selector.toString());
                         // maybe we don't need to copy, but let's stay on the safe side
                         final HashSet<ISymbol> nogood = new HashSet<ISymbol>(nogoodBySelector.get(selector));
                         nogood.add(output_atom.negate());
@@ -304,9 +311,9 @@ public class OWLAPIPlugin implements IPlugin {
                 // going over all instantiated relevant input atoms, also those that are false
 
                 final ArrayList<ISymbol> atuple = atm.tuple();
-                LOGGER.info("pass 1 input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
+                //LOGGER.info("pass 1 input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
                 if( atuple.get(0).equals(delta_pred) && atuple.get(1).equals(delta_sel) ) {
-                    LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
+                    //LOGGER.info("..is relevant with truth value {}", () -> atm.isTrue());
                     final ArrayList<ISymbol> childtuple = atuple.get(2).tuple();
 
                     // atm is always represented as positive, so if the truth value is negative we must add its negated literal
@@ -318,21 +325,23 @@ public class OWLAPIPlugin implements IPlugin {
                         negativeTuples.add(childtuple);
                     }
                 } else {
-                    LOGGER.info("..is irrelevant for delta_pred {} and delta_sel {}", () -> delta_pred.toString(), () -> delta_sel.toString());
+                    //LOGGER.info("..is irrelevant for delta_pred {} and delta_sel {}", () -> delta_pred.toString(), () -> delta_sel.toString());
                 }
             }
 
             // pass 2: build all nogoods of all selectors with same polarity as above
             for(final ISymbol atm : interpretation.getInputAtoms()) {
                 final ArrayList<ISymbol> atuple = atm.tuple();
-                LOGGER.info("pass 2 input atom {} with tuple {}", () -> atm.toString(), () -> atuple.toString());
+                //LOGGER.info("pass 2 input atom {} with tuple {}..", () -> atm.toString(), () -> atuple.toString());
                 if( atuple.get(0).equals(delta_pred) ) {
                     final ISymbol selector = atuple.get(1);
                     final ArrayList<ISymbol> childtuple = atuple.get(2).tuple();
                     if( positiveTuples.contains(childtuple) ) {
                         ret.addToNogood(selector, atm);
+                        //LOGGER.info("..is added to nogood for {} with positive polarity", () -> selector.toString());
                     } else if( negativeTuples.contains(childtuple) ) {
                         ret.addToNogood(selector, atm.negate());
+                        //LOGGER.info("..is added to nogood for {} with negative polarity", () -> selector.toString());
                     }
                 }
             }
@@ -491,8 +500,9 @@ public class OWLAPIPlugin implements IPlugin {
                     t.add(trueOutput);
                     answer.output(t);
 
-                    // 4, because the output constant is the 5th element in the total replacement tuple [onto,delta,selector,query](output)
-                    modcon.generateNogoodsForOutput(ctx, 4, trueOutput);
+                    // 5, because the output constant is the 6th element in the total replacement tuple:
+                    // auxpredicate[onto,delta,selector,query](output)
+                    modcon.generateNogoodsForOutput(ctx, 5, trueOutput);
                 });
             return answer;
         }
