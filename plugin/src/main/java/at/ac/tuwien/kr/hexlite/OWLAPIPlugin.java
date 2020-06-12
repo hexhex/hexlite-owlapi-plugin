@@ -215,9 +215,9 @@ public class OWLAPIPlugin implements IPlugin {
             public HashMap<ISymbol, HashSet<ISymbol> > nogoodBySelector;
             public List<OWLOntologyChange> changes;
 
-            public ModificationsContainer(ISymbol onto, ISymbol predicate) {
-                onto = onto;
-                predicate = predicate;
+            public ModificationsContainer(ISymbol _onto, ISymbol _predicate) {
+                onto = _onto;
+                predicate = _predicate;
                 changes = new LinkedList<OWLOntologyChange>();
                 nogoodBySelector = new HashMap<ISymbol, HashSet<ISymbol> >();
             }
