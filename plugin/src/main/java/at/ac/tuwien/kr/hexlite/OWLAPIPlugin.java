@@ -230,24 +230,30 @@ public class OWLAPIPlugin implements IPlugin {
                 nogoodBySelector.get(selector).add(literalToAdd);
             }
 
-            public void generateNogoodsForOutput(ISolverContext ctx, int output_index, ISymbol output) {
+            public void generateNogoodsForOutput(ISolverContext ctx, boolean outputTruthValue, List<? extends ISymbol> learnOutputTuple, ISymbol originalSelector) {
                 // go over all potential output atoms and check if we have nogoods
                 //LOGGER.info("generateNogoodsForOutputfor for output_index {} and output {} ...",  () -> output_index, () -> output.toString());
                 for( final ISymbol output_atom : ctx.getInstantiatedOutputAtoms() ) {
                     final ArrayList<ISymbol> output_tuple = output_atom.tuple();
                     final boolean ontomatch = output_tuple.get(1).equals(onto);
                     final boolean predmatch = output_tuple.get(2).equals(predicate);
-                    final boolean outputmatch = output_tuple.get(output_index).equals(output);
+                    final int len = output_tuple.size();
+                    final boolean outputmatch = learnOutputTuple.equals(output_tuple.subList(len-learnOutputTuple.size(), len));
                     //LOGGER.info(" ... processing output atom {} withtuple {} matches {} {} {}", output_atom.toString(), output_tuple.toString(), ontomatch, predmatch, outputmatch);
                     if( !ontomatch || !predmatch || !outputmatch )
                         continue;
                     final ISymbol selector = output_tuple.get(3);
-                    //LOGGER.info(" ... checking selector {}", () -> selector.toString());
+                    LOGGER.info(" ... checking selector {} with originalSelector {}", () -> selector.toString(), () -> originalSelector.toString());
                     if( nogoodBySelector.containsKey(selector) ) {
                         //LOGGER.info(" ... adding nogood for output {} in index {} found nogood for selector {}", () -> output.toString(), () -> output_index, () -> selector.toString());
+
+                        LOGGER.info(" ... adding nogood for learnOutputTuple {} ({}) found nogood for selector {}", () -> learnOutputTuple, () -> outputTruthValue, () -> selector.toString());
                         // maybe we don't need to copy, but let's stay on the safe side
                         final HashSet<ISymbol> nogood = new HashSet<ISymbol>(nogoodBySelector.get(selector));
-                        nogood.add(output_atom.negate());
+                        if( outputTruthValue == true )
+                            nogood.add(output_atom.negate());
+                        else
+                            nogood.add(output_atom);
                         ctx.learn(nogood);
                     }
                 }
@@ -427,41 +433,31 @@ public class OWLAPIPlugin implements IPlugin {
         }        
     }
 
-    // public class ModifiedOntologyConsistentAtom extends ModifiedOntologyBaseAtom {
-    //     public ModifiedOntologyConsistentAtom() {
-    //         // dlConsistent[ontospec,deltapredicate,selector]
-    //         // true iff the specified ontology after modification by
-    //         //          the delta in deltapredicate selected by the selector
-    //         //          is consistent
-    //         super("dlConsistent", new ArrayList<InputType>(), 0);
-    //     }
+    public class ModifiedOntologyConsistentAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyConsistentAtom() {
+            // dlConsistent[ontospec,deltapredicate,selector]
+            // true iff the specified ontology after modification by
+            //          the delta in deltapredicate selected by the selector
+            //          is consistent
+            super("dlConsistent", new ArrayList<InputType>(), 0);
+        }
 
-    //     @Override
-    //     public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
-    //         final OWLReasoner reasoner = moc.reasoner();
-    //         LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
-    //         final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
+        @Override
+        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcon) {
+            final OWLReasoner reasoner = moc.reasoner();
+            LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
+            final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
-    //         final Answer answer = new Answer();
-    //         boolean consistent = reasoner.isConsistent();
-    //         if( consistent ) {
-    //             answer.output(emptytuple);
-    //         }
+            final Answer answer = new Answer();
+            boolean consistent = reasoner.isConsistent();
+            if( consistent ) {
+                answer.output(emptytuple);
+            }
+            modcon.generateNogoodsForOutput(ctx, consistent, emptytuple, query.getInput().get(2));
 
-    //         try {
-    //             if (consistent) {
-    //                 nogood.add(ctx.storeOutputAtom(emptytuple).negate());
-    //             } else {
-    //                 nogood.add(ctx.storeOutputAtom(emptytuple));
-    //             }
-    //             ctx.learn(nogood);
-    //         } catch(StoreAtomException e) {
-    //             // ignore
-    //             LOGGER.info("dlConsistent ignoring exception {}", () -> e.toString());
-    //         }
-    //         return answer;
-    //     }
-    // }
+            return answer;
+        }
+    }
 
     public class ModifiedOntologyClassQueryAtom extends ModifiedOntologyBaseAtom {
         public ModifiedOntologyClassQueryAtom() {
@@ -500,66 +496,57 @@ public class OWLAPIPlugin implements IPlugin {
                     t.add(trueOutput);
                     answer.output(t);
 
-                    // 5, because the output constant is the 6th element in the total replacement tuple:
-                    // auxpredicate[onto,delta,selector,query](output)
-                    modcon.generateNogoodsForOutput(ctx, 5, trueOutput);
+                    modcon.generateNogoodsForOutput(ctx, true, t, query.getInput().get(2));
                 });
             return answer;
         }
     }
 
-    // public class ModifiedOntologyObjectPropertyQueryAtom extends ModifiedOntologyBaseAtom {
-    //     public ModifiedOntologyObjectPropertyQueryAtom() {
-    //         super("dlOP", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
-    //     }
+    public class ModifiedOntologyObjectPropertyQueryAtom extends ModifiedOntologyBaseAtom {
+        public ModifiedOntologyObjectPropertyQueryAtom() {
+            super("dlOP", Arrays.asList(new InputType[] { InputType.CONSTANT }), 2);
+        }
 
-    //     public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final HashSet<ISymbol> nogood) {
-    //         final OWLReasoner reasoner = moc.reasoner();
-    //         final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
+        public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcon) {
+            final OWLReasoner reasoner = moc.reasoner();
+            final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
-    //         final Answer answer = new Answer();
-    //         if( !moc.reasoner().isConsistent() ) {
-    //             // make this atom false
-    //             // XXX is this a good idea? logic would say it is true
-    //             // cannot learn because do not know potential output tuples of this external atom
-    //             LOGGER.info("result (dlOP): inconsistent");
-    //             return answer;
-    //         }
+            final Answer answer = new Answer();
+            if( !moc.reasoner().isConsistent() ) {
+                // make this atom false
+                // XXX is this a good idea? logic would say it is true
+                // cannot learn because do not know potential output tuples of this external atom
+                LOGGER.info("result (dlOP): inconsistent");
+                return answer;
+            }
 
-    //         final String opQuery = withoutQuotes(query.getInput().get(3).value());
-    //         final String expandedQuery = moc.expandNamespace(opQuery);
-    //         LOGGER.debug("expanded object property query to {}", () -> expandedQuery);
-    //         final OWLObjectProperty op = moc.df().getOWLObjectProperty(IRI.create(expandedQuery));
-    //         LOGGER.debug("querying ontology with expression {}", () -> op);
-    //         moc.reasoner()
-    //             .objectPropertyDomains(op)
-    //             .flatMap(domainclass -> moc.reasoner().instances(domainclass, false))
-    //             .distinct().forEach(domainindividual -> {
-    //                 moc.reasoner()
-    //                     .objectPropertyValues(domainindividual, op)
-    //                     .forEach(value -> {
-    //                         LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
-    //                                 () -> op, () -> value);
-    //                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
-    //                         t.add(ctx.storeString(domainindividual.getIRI().toString()));
-    //                         t.add(ctx.storeString(value.getIRI().toString()));
+            final String opQuery = withoutQuotes(query.getInput().get(3).value());
+            final String expandedQuery = moc.expandNamespace(opQuery);
+            LOGGER.debug("expanded object property query to {}", () -> expandedQuery);
+            final OWLObjectProperty op = moc.df().getOWLObjectProperty(IRI.create(expandedQuery));
+            LOGGER.debug("querying ontology with expression {}", () -> op);
+            moc.reasoner()
+                .objectPropertyDomains(op)
+                .flatMap(domainclass -> moc.reasoner().instances(domainclass, false))
+                .distinct().forEach(domainindividual -> {
+                    moc.reasoner()
+                        .objectPropertyValues(domainindividual, op)
+                        .forEach(value -> {
+                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
+                                    () -> op, () -> value);
+                            final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
+                            t.add(ctx.storeString(domainindividual.getIRI().toString()));
+                            t.add(ctx.storeString(value.getIRI().toString()));
                             
-    //                         LOGGER.info("result (dlOP): consistent and found {}/{}", () -> domainindividual.getIRI().toString(), () -> value.getIRI().toString());
-    //                         answer.output(t);
+                            LOGGER.info("result (dlOP): consistent and found {}/{}", () -> domainindividual.getIRI().toString(), () -> value.getIRI().toString());
+                            answer.output(t);
 
-    //                         try {
-    //                             HashSet<ISymbol> here_nogood = new HashSet<ISymbol>(nogood);
-    //                             here_nogood.add(ctx.storeOutputAtom(t).negate());
-    //                             ctx.learn(here_nogood);                           
-    //                         } catch(StoreAtomException e) {
-    //                             // ignore
-    //                             LOGGER.info("dlOP ignoring exception {}", () -> e.toString());
-    //                         }
-    //                     });
-    //             });
-    //         return answer;
-    //     }
-    // }
+                            modcon.generateNogoodsForOutput(ctx, true, t, query.getInput().get(2));
+                        });
+                });
+            return answer;
+        }
+    }
 
     public class SimplifyIRIAtom extends BaseAtom {
         public SimplifyIRIAtom() {
@@ -596,9 +583,9 @@ public class OWLAPIPlugin implements IPlugin {
         atoms.add(new ClassQueryReadOnlyAtom());
         atoms.add(new ObjectPropertyReadOnlyQueryAtom());
         atoms.add(new DataPropertyReadOnlyQueryAtom());
-        //atoms.add(new ModifiedOntologyConsistentAtom());
+        atoms.add(new ModifiedOntologyConsistentAtom());
         atoms.add(new ModifiedOntologyClassQueryAtom());
-        //atoms.add(new ModifiedOntologyObjectPropertyQueryAtom());
+        atoms.add(new ModifiedOntologyObjectPropertyQueryAtom());
         atoms.add(new SimplifyIRIAtom());
         return atoms;        
 	}

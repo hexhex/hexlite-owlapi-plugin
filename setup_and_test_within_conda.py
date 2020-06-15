@@ -119,6 +119,8 @@ class Setup:
 		env = self.config['env']
 		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 33" 
 		#call += ' --verbose'
+		call += ' --stats'
+		#call += ' --noeatomlearn'
 		logging.warning("TODO fix bug in FLP checker (parser?)")
 		call += ' --flpcheck=none'
 		stdout = self.__run_shell_get_stdout("source activate %s && %s -- %s" % (env, call, os.path.join('examples', directory, hexfile)))
