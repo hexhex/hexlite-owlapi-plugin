@@ -8,7 +8,7 @@ TIMEFORMAT="--format=TIME %U user %S system %E elapsed %Mk max"
 
 function doit() {
   INFILES=$*
-  export CLASSPATH=$BASE/plugin/target/owlapiplugin-1.0-SNAPSHOT.jar:$BASE/hexlite/java-api/target/hexlite-java-plugin-api-1.0-SNAPSHOT.jar ;
+  export CLASSPATH=$BASE/plugin/target/owlapiplugin-1.0.0.jar:$BASE/hexlite/java-api/target/hexlite-java-plugin-api-1.3.0.jar ;
   export LOG4J_CONFIGURATION_FILE=`pwd`/log4j2.xml
   /usr/bin/time "$TIMEFORMAT" \
   hexlite $FLAGS --flpcheck=none \
