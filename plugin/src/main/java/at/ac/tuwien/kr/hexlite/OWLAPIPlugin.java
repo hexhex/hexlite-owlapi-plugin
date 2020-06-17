@@ -26,6 +26,7 @@ import at.ac.tuwien.kr.hexlite.api.Answer;
 import at.ac.tuwien.kr.hexlite.api.ExtSourceProperties;
 import at.ac.tuwien.kr.hexlite.api.IPlugin;
 import at.ac.tuwien.kr.hexlite.api.IPluginAtom;
+import at.ac.tuwien.kr.hexlite.api.IPluginAtom.IAnswer;
 import at.ac.tuwien.kr.hexlite.api.IPluginAtom.InputType;
 import at.ac.tuwien.kr.hexlite.api.ISolverContext;
 import at.ac.tuwien.kr.hexlite.api.ISolverContext.StoreAtomException;
@@ -114,20 +115,19 @@ public class OWLAPIPlugin implements IPlugin {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            //LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
             final String conceptQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location,
-                    () -> conceptQuery);
+            //LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> conceptQuery);
             final IOntologyContext oc = ontologyContext(location);
             final String expandedQuery = oc.expandNamespace(conceptQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            //LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
             final Answer answer = new Answer();
             final OWLClassExpression owlquery = oc.df().getOWLClass(IRI.create(expandedQuery));
-            LOGGER.info("querying unmodified ontology with expression {}", () -> owlquery);
+            //LOGGER.info("querying unmodified ontology with expression {}", () -> owlquery);
             oc.reasoner().getInstances(owlquery, false).entities().forEach(instance -> {
-                LOGGER.info("found instance {}", () -> instance);
+                //LOGGER.info("found instance {}", () -> instance);
                 final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                 t.add(ctx.storeString(instance.getIRI().toString()));
                 answer.output(t);
@@ -144,24 +144,23 @@ public class OWLAPIPlugin implements IPlugin {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            //LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
             final String opQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location,
-                    () -> opQuery);
+            //LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> opQuery);
             final IOntologyContext oc = ontologyContext(location);
             final String expandedQuery = oc.expandNamespace(opQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            //LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
             final Answer answer = new Answer();
             final OWLObjectProperty op = oc.df().getOWLObjectProperty(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> op);
+            //LOGGER.debug("querying ontology with expression {}", () -> op);
             oc.reasoner().objectPropertyDomains(op)
                 .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
                 .distinct()
                 .forEach( domainindividual -> {
                     oc.reasoner().objectPropertyValues(domainindividual, op).forEach( value -> {
-                        LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
+                        //LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
                         t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
                         t.add(ctx.storeString(value.getIRI().toString())); // maybe getShortForm()
@@ -180,23 +179,23 @@ public class OWLAPIPlugin implements IPlugin {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            //LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
             final String dpQuery = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dpQuery);
+            //LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> dpQuery);
             final IOntologyContext oc = ontologyContext(location);
             final String expandedQuery = oc.expandNamespace(dpQuery);
-            LOGGER.debug("expanded query to {}", () -> expandedQuery);
+            //LOGGER.debug("expanded query to {}", () -> expandedQuery);
 
             final Answer answer = new Answer();
             final OWLDataProperty dp = oc.df().getOWLDataProperty(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> dp);
+            //LOGGER.debug("querying ontology with expression {}", () -> dp);
             oc.reasoner().dataPropertyDomains(dp)
                 .flatMap( domainclass -> oc.reasoner().instances(domainclass, false) )
                 .distinct()
                 .forEach( domainindividual -> {
                     oc.reasoner().dataPropertyValues(domainindividual, dp).forEach( value -> {
-                        LOGGER.debug("found individual {} related via data property {} to value {}", () -> domainindividual, () -> dp, () -> value);
+                        //LOGGER.debug("found individual {} related via data property {} to value {}", () -> domainindividual, () -> dp, () -> value);
                         final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
                         t.add(ctx.storeString(domainindividual.getIRI().toString())); // maybe getShortForm()
                         t.add(ctx.storeString(value.getLiteral())); // maybe deal with integers/types differently: value.isBoolean value.isInteger
@@ -230,32 +229,42 @@ public class OWLAPIPlugin implements IPlugin {
                 nogoodBySelector.get(selector).add(literalToAdd);
             }
 
-            public void generateNogoodsForOutput(ISolverContext ctx, boolean outputTruthValue, List<? extends ISymbol> learnOutputTuple, ISymbol originalSelector) {
-                // go over all potential output atoms and check if we have nogoods
-                //LOGGER.info("generateNogoodsForOutputfor for output_index {} and output {} ...",  () -> output_index, () -> output.toString());
-                for( final ISymbol output_atom : ctx.getInstantiatedOutputAtoms() ) {
-                    final ArrayList<ISymbol> output_tuple = output_atom.tuple();
-                    final boolean ontomatch = output_tuple.get(1).equals(onto);
-                    final boolean predmatch = output_tuple.get(2).equals(predicate);
-                    final int len = output_tuple.size();
-                    final boolean outputmatch = learnOutputTuple.equals(output_tuple.subList(len-learnOutputTuple.size(), len));
-                    //LOGGER.info(" ... processing output atom {} withtuple {} matches {} {} {}", output_atom.toString(), output_tuple.toString(), ontomatch, predmatch, outputmatch);
-                    if( !ontomatch || !predmatch || !outputmatch )
+            public void generateNogoodsForAnswer(ISolverContext ctx, IPluginAtom eatom, IAnswer answer, ISymbol originalSelector) {
+                // go over all instantiated replacement atoms
+                // skip those that do not match onto/predicate of this call (we cannot handle a different ontology, we do not handle different predicates)
+                // extract selector
+                // if the output tuple in the replacement atom is in the answer, create a nogood that makes the replacement true (=negated)
+                // if the output tuple in the replacement atom is not in the answer, create a nogood that makes the replacement false
+                final HashSet<ArrayList<ISymbol>> trueTuples = answer.getTrueTuples();
+                assert(answer.getUnknownTuples().size() == 0);
+                final int oarity = eatom.getOutputArguments();
+                //LOGGER.info("generateNogoodsForAnswer for true tuples {} ...",  () -> trueTuples.toString());
+                for( final ISymbol replacementAtom : ctx.getInstantiatedOutputAtoms() ) {
+                    final ArrayList<ISymbol> replacementTuple = replacementAtom.tuple();
+                    final boolean ontomatch = replacementTuple.get(1).equals(onto);
+                    final boolean predmatch = replacementTuple.get(2).equals(predicate);
+                    //LOGGER.info(" ... replacement atom {} matches onto:{} predicate:{}", replacementAtom.toString(), ontomatch, predmatch);
+                    if( !ontomatch || !predmatch )
                         continue;
-                    final ISymbol selector = output_tuple.get(3);
-                    LOGGER.info(" ... checking selector {} with originalSelector {}", () -> selector.toString(), () -> originalSelector.toString());
-                    if( nogoodBySelector.containsKey(selector) ) {
-                        //LOGGER.info(" ... adding nogood for output {} in index {} found nogood for selector {}", () -> output.toString(), () -> output_index, () -> selector.toString());
 
-                        LOGGER.info(" ... adding nogood for learnOutputTuple {} ({}) found nogood for selector {}", () -> learnOutputTuple, () -> outputTruthValue, () -> selector.toString());
-                        // maybe we don't need to copy, but let's stay on the safe side
-                        final HashSet<ISymbol> nogood = new HashSet<ISymbol>(nogoodBySelector.get(selector));
-                        if( outputTruthValue == true )
-                            nogood.add(output_atom.negate());
-                        else
-                            nogood.add(output_atom);
-                        ctx.learn(nogood);
+                    final List<? extends ISymbol> outputTuple = replacementTuple.subList(replacementTuple.size()-oarity, replacementTuple.size());
+                    final boolean outputIsTrue = trueTuples.contains(outputTuple);
+                    final ISymbol selector = replacementTuple.get(3);
+                    //LOGGER.info(" ... checking selector {} with originalSelector {}, output {} is {}", () -> selector.toString(), () -> originalSelector.toString(), () -> outputTuple.toString(), () -> outputIsTrue);
+
+                    HashSet<ISymbol> nogood = null;
+                    if( nogoodBySelector.containsKey(selector) ) {
+                        nogood = new HashSet<ISymbol>(nogoodBySelector.get(selector));
+                    } else {
+                        nogood = new HashSet<ISymbol>();
                     }
+
+                    if( outputIsTrue ) {
+                        nogood.add(replacementAtom.negate());
+                    } else {
+                        nogood.add(replacementAtom);
+                    }
+                    ctx.learn(nogood);
                 }
             }
         }
@@ -397,23 +406,23 @@ public class OWLAPIPlugin implements IPlugin {
                     final ISymbol symvalue = child.get(3);
                     final String svalue = symvalue.value();
                     OWLLiteral literal = null;
-                    LOGGER.info("processing adddp value "+svalue);
+                    //LOGGER.info("processing adddp value "+svalue);
                     if( svalue.startsWith("\"") ) {
-                        LOGGER.info("  IT IS string");
+                        //LOGGER.info("  IT IS string");
                         literal = ctx.df().getOWLLiteral(svalue.substring(1,svalue.length()-1));
                     } else if( svalue.equals("true") ) {
-                        LOGGER.info("  IT IS true");
+                        //LOGGER.info("  IT IS true");
                         literal = ctx.df().getOWLLiteral(true);
                     } else if( svalue.equals("false") ) {
-                        LOGGER.info("  IT IS false");
+                        //LOGGER.info("  IT IS false");
                         literal = ctx.df().getOWLLiteral(false);
                     } else {
                         try {
                             literal = ctx.df().getOWLLiteral(symvalue.intValue());
-                            LOGGER.info("  IT IS integer");
+                            //LOGGER.info("  IT IS integer");
                         }
                         catch(final RuntimeException e) {
-                            LOGGER.info("  IT IS stringsymbol");
+                            //LOGGER.info("  IT IS stringsymbol");
                             literal = ctx.df().getOWLLiteral(svalue);
                         }
                     }                            
@@ -445,7 +454,7 @@ public class OWLAPIPlugin implements IPlugin {
         @Override
         public Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcon) {
             final OWLReasoner reasoner = moc.reasoner();
-            LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
+            //LOGGER.info("result: consistent={}", () -> reasoner.isConsistent());
             final ArrayList<ISymbol> emptytuple = new ArrayList<ISymbol>();
 
             final Answer answer = new Answer();
@@ -453,7 +462,7 @@ public class OWLAPIPlugin implements IPlugin {
             if( consistent ) {
                 answer.output(emptytuple);
             }
-            modcon.generateNogoodsForOutput(ctx, consistent, emptytuple, query.getInput().get(2));
+            modcon.generateNogoodsForAnswer(ctx, this, answer, query.getInput().get(2));
 
             return answer;
         }
@@ -474,30 +483,30 @@ public class OWLAPIPlugin implements IPlugin {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
-                LOGGER.info("result (dlC): inconsistent!");
+                //LOGGER.info("result (dlC): inconsistent!");
+                modcon.generateNogoodsForAnswer(ctx, this, answer, query.getInput().get(2));
                 return answer;
             }
 
             final String cQuery = withoutQuotes(query.getInput().get(3).value());
             final String expandedQuery = moc.expandNamespace(cQuery);
-            LOGGER.debug("expanded class query to {}", () -> expandedQuery);
+            //LOGGER.debug("expanded class query to {}", () -> expandedQuery);
             final OWLClassExpression cquery = moc.df().getOWLClass(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> cquery);
+            //LOGGER.debug("querying ontology with expression {}", () -> cquery);
             moc.reasoner()
                 .getInstances(cquery, false /*get also direct instances*/)
                 .entities()
                 .forEach(domainindividual -> {
-                    LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
+                    // LOGGER.debug("found individual {} in query {}", () -> domainindividual, () -> cquery);
 
                     final ISymbol trueOutput = ctx.storeString(domainindividual.getIRI().toString());
-                    LOGGER.info("result (dlC): consistent and found {}", () -> domainindividual.getIRI().toString());
+                    // LOGGER.info("result (dlC): consistent and found {}", () -> domainindividual.getIRI().toString());
 
                     final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
                     t.add(trueOutput);
                     answer.output(t);
-
-                    modcon.generateNogoodsForOutput(ctx, true, t, query.getInput().get(2));
                 });
+            modcon.generateNogoodsForAnswer(ctx, this, answer, query.getInput().get(2));
             return answer;
         }
     }
@@ -516,15 +525,16 @@ public class OWLAPIPlugin implements IPlugin {
                 // make this atom false
                 // XXX is this a good idea? logic would say it is true
                 // cannot learn because do not know potential output tuples of this external atom
-                LOGGER.info("result (dlOP): inconsistent");
+                // LOGGER.info("result (dlOP): inconsistent");
+                modcon.generateNogoodsForAnswer(ctx, this, answer, query.getInput().get(2));
                 return answer;
             }
 
             final String opQuery = withoutQuotes(query.getInput().get(3).value());
             final String expandedQuery = moc.expandNamespace(opQuery);
-            LOGGER.debug("expanded object property query to {}", () -> expandedQuery);
+            // LOGGER.debug("expanded object property query to {}", () -> expandedQuery);
             final OWLObjectProperty op = moc.df().getOWLObjectProperty(IRI.create(expandedQuery));
-            LOGGER.debug("querying ontology with expression {}", () -> op);
+            // LOGGER.debug("querying ontology with expression {}", () -> op);
             moc.reasoner()
                 .objectPropertyDomains(op)
                 .flatMap(domainclass -> moc.reasoner().instances(domainclass, false))
@@ -532,18 +542,16 @@ public class OWLAPIPlugin implements IPlugin {
                     moc.reasoner()
                         .objectPropertyValues(domainindividual, op)
                         .forEach(value -> {
-                            LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual,
-                                    () -> op, () -> value);
+                            // LOGGER.debug("found individual {} related via {} to individual {}", () -> domainindividual, () -> op, () -> value);
                             final ArrayList<ISymbol> t = new ArrayList<ISymbol>(2);
                             t.add(ctx.storeString(domainindividual.getIRI().toString()));
                             t.add(ctx.storeString(value.getIRI().toString()));
                             
-                            LOGGER.info("result (dlOP): consistent and found {}/{}", () -> domainindividual.getIRI().toString(), () -> value.getIRI().toString());
+                            // LOGGER.info("result (dlOP): consistent and found {}/{}", () -> domainindividual.getIRI().toString(), () -> value.getIRI().toString());
                             answer.output(t);
-
-                            modcon.generateNogoodsForOutput(ctx, true, t, query.getInput().get(2));
                         });
                 });
+            modcon.generateNogoodsForAnswer(ctx, this, answer, query.getInput().get(2));
             return answer;
         }
     }
@@ -555,13 +563,13 @@ public class OWLAPIPlugin implements IPlugin {
 
         @Override
         public IAnswer retrieve(final ISolverContext ctx, final IQuery query) {
-            LOGGER.debug("retrieve of {}", () -> getPredicate());
+            // LOGGER.debug("retrieve of {}", () -> getPredicate());
             final String location = withoutQuotes(query.getInput().get(0).value());
             final String iri = withoutQuotes(query.getInput().get(1).value());
-            LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> iri);
+            // LOGGER.info("{} retrieving with ontoURI={} and query {}", () -> getPredicate(), () -> location, () -> iri);
             final IOntologyContext oc = ontologyContext(location);
             final String simplified = oc.simplifyNamespaceIfPossible(iri);
-            LOGGER.debug("simplified to {}", () -> simplified);
+            // LOGGER.debug("simplified to {}", () -> simplified);
 
             final Answer answer = new Answer();
             final ArrayList<ISymbol> t = new ArrayList<ISymbol>(1);
