@@ -19,7 +19,7 @@ def main():
 	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
 	# the "./" is for being able to put log4j2.xml into ./
 	cwd = os.getcwd()
-	s.config['classpath'] = '%s/:%s/plugin/target/owlapiplugin-1.0-SNAPSHOT.jar' % (cwd, cwd)
+	s.config['classpath'] = '%s/:%s/plugin/target/owlapiplugin-1.0.0.jar' % (cwd, cwd)
 
 	s.run_example('koala', ['querykoala1.hex'])
 	s.run_example('koala', ['querykoala2.hex'])
