@@ -24,6 +24,8 @@ def main():
 	s.run_example('koala', ['querykoala1.hex'])
 	s.run_example('koala', ['querykoala2.hex'])
 	s.run_example('factory', ['domain.hex', 'query_allpainted.hex'])
+	s.run_example('factory', ['domain.hex', 'query_deactivatable.hex'])
+	s.run_example('factory', ['domain.hex', 'query_skippable.hex'])
 
 class Setup:
 	PYTHONVER='3.7'
