@@ -18,7 +18,7 @@ def readme():
 readme_txt = readme()
 
 setuptools.setup(name='hexlite-owlapi-plugin',
-      version='1.0.0-SNAPSHOT',
+      version='1.0',
       description='OWLAPI Plugin for the Hexlite Solver',
       long_description=readme_txt,
       classifiers=[
@@ -38,8 +38,7 @@ setuptools.setup(name='hexlite-owlapi-plugin',
       author='Peter Schueller',
       author_email='contact@peterschueller.com',
       license='MIT',
-      packages=???,
       install_requires=[
         'hexlite',
       ],
-      zip_safe=False???)
+      zip_safe=False)
