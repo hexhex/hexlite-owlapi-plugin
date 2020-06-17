@@ -1,4 +1,4 @@
-#const onto="examples/koala/koala-meta.json".
+#const onto="koala-meta.json".
 
 % make 3 alternative ontologies (we test adding assertions of all 3 kinds):
 % * qalt: we check which animals could be quokkas

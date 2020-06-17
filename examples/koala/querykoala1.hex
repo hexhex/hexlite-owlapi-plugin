@@ -1,4 +1,4 @@
-#const onto="examples/koala/koala-meta.json".
+#const onto="koala-meta.json".
 
 % guess symmetric couples
 { couple(A,B) } :- &dlCro[onto,"koala:Animal"](A), &dlCro[onto,"koala:Animal"](B), A < B.

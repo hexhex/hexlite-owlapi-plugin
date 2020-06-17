@@ -8,9 +8,8 @@ def main():
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
 	#s.install_jpype_via_build('v0.7.5')
-	s.install_jpype_via_conda()
-	#s.reclone_hexlite('v1.2.0')
-	s.reclone_hexlite('extralearning')
+	s.install_jpype_via_conda('0.7.5')
+	s.reclone_hexlite('v1.3.0')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
 	s.build_this_plugin()
@@ -18,10 +17,13 @@ def main():
 	# either use full classpath provided by maven (that is slow)
 	#s.get_classpath()
 	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
-	s.config['classpath'] = './:plugin/target/owlapiplugin-1.0-SNAPSHOT.jar'
+	# the "./" is for being able to put log4j2.xml into ./
+	cwd = os.getcwd()
+	s.config['classpath'] = '%s/:%s/plugin/target/owlapiplugin-1.0-SNAPSHOT.jar' % (cwd, cwd)
 
-	#s.run_example('koala', 'querykoala1.hex')
-	s.run_example('koala', 'querykoala2.hex')
+	s.run_example('koala', ['querykoala1.hex'])
+	s.run_example('koala', ['querykoala2.hex'])
+	s.run_example('factory', ['domain.hex', 'query_allpainted.hex'])
 
 class Setup:
 	PYTHONVER='3.7'
@@ -87,9 +89,12 @@ class Setup:
 		finally:
 			os.rename(ld_temp, ld_orig) # restore conda env
 
-	def install_jpype_via_conda(self):
+	def install_jpype_via_conda(self, version=None):
 		env = self.config['env']
-		self.__run_shell_get_stdout("source activate %s && conda install -y -c conda-forge jpype1=0.7.3 >&2" % (env,))
+		ver = ''
+		if version is not None:
+			ver = '='+version
+		self.__run_shell_get_stdout("source activate %s && conda install -y -c conda-forge jpype1%s >&2" % (env, ver))
 
 	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
@@ -112,18 +117,21 @@ class Setup:
 		self.__run_shell_get_stdout("source activate %s && cd plugin && mvn clean compile package >&2" % env)
 
 	def get_classpath(self):
-		self.config['classpath'] = self.__run_shell_get_stdout("cd plugin && mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q")
+		env = self.config['env']
+		self.config['classpath'] = self.__run_shell_get_stdout("source activate %s && cd plugin && mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q" % env)
 		logging.info("got classpath %s", self.config['classpath'])
 
-	def run_example(self, directory, hexfile):
+	def run_example(self, directory, hexfiles):
 		env = self.config['env']
-		call = "hexlite --pluginpath hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 33" 
+		cwd = os.getcwd()
+		call = "hexlite --pluginpath %s/hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 33" % cwd 
 		#call += ' --verbose'
 		call += ' --stats'
 		#call += ' --noeatomlearn'
 		logging.warning("TODO fix bug in FLP checker (parser?)")
 		call += ' --flpcheck=none'
-		stdout = self.__run_shell_get_stdout("source activate %s && %s -- %s" % (env, call, os.path.join('examples', directory, hexfile)))
+		execdir = os.path.join('examples', directory)
+		stdout = self.__run_shell_get_stdout("cd %s && source activate %s && %s -- %s" % (execdir, env, call, ' '.join(hexfiles)))
 		sys.stdout.write(stdout)
 
 logging.basicConfig(level=logging.INFO)
