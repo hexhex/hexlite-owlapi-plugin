@@ -1,0 +1,8 @@
+{}
+{pairing("koalaex:leo","koalaex:lisa")}
+{pairing("koalaex:leo","koalaex:silvia")}
+{pairing("koalaex:franz","koalaex:leo")}
+{pairing("koalaex:franz","koalaex:lisa")}
+{pairing("koalaex:franz","koalaex:silvia")}
+{pairing("koalaex:leo","koalaex:lisa"),pairing("koalaex:franz","koalaex:silvia")}
+{pairing("koalaex:leo","koalaex:silvia"),pairing("koalaex:franz","koalaex:lisa")}

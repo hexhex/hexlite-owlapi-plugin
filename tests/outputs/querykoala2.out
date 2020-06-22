@@ -1,0 +1,16 @@
+{}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien"))}
+{hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien"))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien"))}
+{hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien"))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien")),hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien"))}
+{hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien")),hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien"))}
+{hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien")),hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien")),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien")),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien")),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien")),hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien")),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(rfalt,addop("koala:hasHabitat","koalaex:franz","koalaex:tuwien")),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}
+{hdelta(hwalt,adddp("koala:isHardWorking","koalaex:silvia",true)),hdelta(rfalt,addop("koala:hasHabitat","koalaex:silvia","koalaex:tuwien")),hdelta(qalt,addc("koala:TasmanianDevil","koalaex:lisa"))}

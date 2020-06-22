@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#"
+     xml:base="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl"
+     xmlns:owl="http://www.w3.org/2002/07/owl#"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     xmlns:koala="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#">
+    <owl:Ontology rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl">
+        <owl:imports rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl"/>
+    </owl:Ontology>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Classes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Marsupials -->
+
+    <rdf:Description rdf:about="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Marsupials">
+        <owl:disjointWith>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#hasHabitat"/>
+                <owl:minQualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:minQualifiedCardinality>
+                <owl:onClass rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#University"/>
+            </owl:Restriction>
+        </owl:disjointWith>
+    </rdf:Description>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Individuals
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#franz -->
+
+    <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#franz">
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Animal"/>
+        <rdf:type>
+            <owl:Class>
+                <owl:complementOf rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Female"/>
+            </owl:Class>
+        </rdf:type>
+        <koala:hasChildren rdf:resource="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa"/>
+        <koala:isHardWorking rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</koala:isHardWorking>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#leo -->
+
+    <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#leo">
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Marsupials"/>
+        <rdf:type>
+            <owl:Class>
+                <owl:complementOf rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#TasmanianDevil"/>
+            </owl:Class>
+        </rdf:type>
+        <koala:hasGender rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#male"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa -->
+
+    <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#lisa">
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Marsupials"/>
+        <koala:hasChildren rdf:resource="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#leo"/>
+        <koala:hasGender rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#female"/>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#silvia -->
+
+    <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#silvia">
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Female"/>
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#Student"/>
+        <koala:isHardWorking rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</koala:isHardWorking>
+    </owl:NamedIndividual>
+    
+
+
+    <!-- http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#tuwien -->
+
+    <owl:NamedIndividual rdf:about="http://kr.tuwien.ac.at/hexlite/hexlite-plugin-owlapi/examples/koala-extended.owl#tuwien">
+        <rdf:type rdf:resource="http://protege.stanford.edu/plugins/owl/owl-library/koala.owl#University"/>
+    </owl:NamedIndividual>
+</rdf:RDF>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+
