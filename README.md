@@ -1,14 +1,19 @@
 # Hexlite OWLAPI Plugin
 
-An OWLAPI Plugin for the Hexlite solver
+An OWLAPI Plugin for the Hexlite solver.
 
-This software is under construction.
+The plugin is described in the following publication.
+
+Peter Schüller (2020).
+A new OWLAPI interface for HEX-Programs applied to Explaining Contingencies in Production Planning.
+In: New Foundations for Human-Centered AI, Workshop at ECAI 2020.
 
 # Setup
 
-Currently, try the following:
+The easiest way is to use conda. In your base environment run
 
-    setup_and_test_within_conda.py <conda-environment>
+
+    $ python3 setup_and_test_within_conda.py <conda-environment>
 
 This will 
 
@@ -20,9 +25,11 @@ This will
 
 Be careful:
 * the `<conda-environment>` will be deleted if it exists
-* hexlite will be deleted and cloned anew if it exists
+* The hexlite subdirectory of this directory will be deleted and cloned anew if it exists
 
 # Development
+
+* Git Repository: https://github.com/hexhex/hexlite-owlapi-plugin
 
 * In Visual Studio Code, it might be necessary to do
 
