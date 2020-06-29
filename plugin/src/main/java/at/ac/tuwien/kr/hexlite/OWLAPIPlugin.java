@@ -211,27 +211,49 @@ public class OWLAPIPlugin implements IPlugin {
         protected class ModificationsContainer {
             public ISymbol onto;
             public ISymbol predicate;
-            public HashMap<ISymbol, HashSet<ISymbol> > nogoodBySelector;
+            //public HashMap<ISymbol, HashSet<ISymbol> > nogoodBySelector;
             public List<OWLOntologyChange> changes;
+            // the nogood of the current delta/selector literal assignments
+            public HashSet<ISymbol> primaryModificationNogood;
 
             public ModificationsContainer(ISymbol _onto, ISymbol _predicate) {
                 onto = _onto;
                 predicate = _predicate;
                 changes = new LinkedList<OWLOntologyChange>();
-                nogoodBySelector = new HashMap<ISymbol, HashSet<ISymbol> >();
+                primaryModificationNogood = new HashSet<ISymbol>();
+                //nogoodBySelector = new HashMap<ISymbol, HashSet<ISymbol> >();
                 //LOGGER.info("ModificationsContainer with onto {} and predicate {}", onto.toString(), predicate.toString());
             }
 
-            public void addToNogood(ISymbol selector, ISymbol literalToAdd) {
-                if( !nogoodBySelector.containsKey(selector) ) {
-                    nogoodBySelector.put(selector, new HashSet<ISymbol>());                    
-                }
-                nogoodBySelector.get(selector).add(literalToAdd);
-            }
+            // public void addToNogood(ISymbol selector, ISymbol literalToAdd) {
+            //     if( !nogoodBySelector.containsKey(selector) ) {
+            //         nogoodBySelector.put(selector, new HashSet<ISymbol>());                    
+            //     }
+            //     nogoodBySelector.get(selector).add(literalToAdd);
+            // }
 
             public void generateNogoodsForAnswer(ISolverContext ctx, IPluginAtom eatom, IAnswer answer, ISymbol originalSelector) {
                 // go over all instantiated replacement atoms
                 // skip those that do not match onto/predicate of this call (we cannot handle a different ontology, we do not handle different predicates)
+
+                // * we extract the current modification M and its input nogood - T = { QPRED(QSEL,mod) \in I } \cup F = { ~QPRED(QSEL,mod) \in I }
+                // * we extract for all other instantiated QPRED'/QSEL' combinations for the same instantiated query:
+                //   - the nogood that would give rise to the same modification M
+                //   - this nogood does not exist if not all m \in M have a corresponding QPRED'(QSEL',m) in the input instantiation
+                //     (in this case the other instantiated query can never have this input)
+                //   - otherwise this nogood exists
+                //   - it contains T' = { QPRED'(QSEL',mod) | mod \in M }
+                //   - it contains F' = { ~QPRED'(QSEL',mod) | QPRED'(QSEL',mod) \in grd(I), mod \notin M }
+                //
+                // the algorithm to achieve this is as follows:
+                // * pass 1: go over input and compute M and T and F
+                // * pass 2: go over all output instantiations where only QPRED/QSEL differs from the current call
+                //   - collect G = { QPRED'(QSEL',mod) \in grd(I) } and compute M' = { mod | QPRED'(QSEL',mod) \in G }
+                //   - skip if M is not a subset of M'
+                //   - create nogood
+                //   - T' = { QPRED'(QSEL',mod) \in G | mod \in M }
+                //   - F' = G \setminus T'
+
                 // extract selector
                 // if the output tuple in the replacement atom is in the answer, create a nogood that makes the replacement true (=negated)
                 // if the output tuple in the replacement atom is not in the answer, create a nogood that makes the replacement false
@@ -252,7 +274,8 @@ public class OWLAPIPlugin implements IPlugin {
                     final ISymbol selector = replacementTuple.get(3);
                     //LOGGER.info(" ... checking selector {} with originalSelector {}, output {} is {}", () -> selector.toString(), () -> originalSelector.toString(), () -> outputTuple.toString(), () -> outputIsTrue);
 
-                    HashSet<ISymbol> nogood = null;
+                    HashSet<ISymbol> nogood = new HashSet<ISymbol>();
+
                     if( nogoodBySelector.containsKey(selector) ) {
                         nogood = new HashSet<ISymbol>(nogoodBySelector.get(selector));
                     } else {
@@ -300,25 +323,21 @@ public class OWLAPIPlugin implements IPlugin {
 
         public abstract Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcontainer);
 
+        // the currently relevant modification would be:
         protected ModificationsContainer extractModifications(final IOntologyContext ctx, final IInterpretation interpretation, final ISymbol onto, final ISymbol delta_pred, final ISymbol delta_sel) {
             // here we get all relevant input atoms for this ground instantiation
             // therefore we can only collect nogoods for calls with the same predicate inputs and with the same or different constant inputs
             // we collect one modification of the ontology based on 
             // * current predicate input (predicate, 1st argument)
             // * current constant input (selector, 2nd argument)
-            // we create a nogood for this input
-            // we also create all alternative nogoods for all alternative selectors (2nd argument)
+            // * given query predicate QPRED and query selector QSEL, this modification is
+            //   the extension of the predicate where the first argument equals the selector
+            //   this is M = { mod | QPRED(QSEL,mod) \in I }
             //
-            // we do this in 2 passes:
-            // pass 1:
-            // * use actual selector and selection
-            // * build modification
-            // * remember tuples and their polarity
-            // pass 2:
-            // * use tuples and polarity to build nogoods for all selectors
+            // this yields a modification M of the ontology that can be queried
 
-            final HashSet<ArrayList<ISymbol> > positiveTuples = new HashSet<ArrayList<ISymbol> >();
-            final HashSet<ArrayList<ISymbol> > negativeTuples = new HashSet<ArrayList<ISymbol> >();
+            // final HashSet<ArrayList<ISymbol> > positiveTuples = new HashSet<ArrayList<ISymbol> >();
+            // final HashSet<ArrayList<ISymbol> > negativeTuples = new HashSet<ArrayList<ISymbol> >();
             final ModificationsContainer ret = new ModificationsContainer(onto, delta_pred);
 
             // pass 1: record positive/negative tuples and extract modification
@@ -333,33 +352,36 @@ public class OWLAPIPlugin implements IPlugin {
 
                     // atm is always represented as positive, so if the truth value is negative we must add its negated literal
                     if( atm.isTrue() ) {
-                        positiveTuples.add(childtuple);
+                        // positiveTuples.add(childtuple);
                         extractSingleModification(ctx, childtuple, ret);
+                        ret.primaryModificationNogood.add(atm);
                     } else {
                         // no modification, but the result we compute still depends on the falsity of atm
-                        negativeTuples.add(childtuple);
+                        // negativeTuples.add(childtuple);
+                        ret.primaryModificationNogood.add(atm.negate());
                     }
                 } else {
                     //LOGGER.info("..is irrelevant for delta_pred {} and delta_sel {}", () -> delta_pred.toString(), () -> delta_sel.toString());
                 }
             }
 
-            // pass 2: build all nogoods of all selectors with same polarity as above
-            for(final ISymbol atm : interpretation.getInputAtoms()) {
-                final ArrayList<ISymbol> atuple = atm.tuple();
-                //LOGGER.info("pass 2 input atom {} with tuple {}..", () -> atm.toString(), () -> atuple.toString());
-                if( atuple.get(0).equals(delta_pred) ) {
-                    final ISymbol selector = atuple.get(1);
-                    final ArrayList<ISymbol> childtuple = atuple.get(2).tuple();
-                    if( positiveTuples.contains(childtuple) ) {
-                        ret.addToNogood(selector, atm);
-                        //LOGGER.info("..is added to nogood for {} with positive polarity", () -> selector.toString());
-                    } else if( negativeTuples.contains(childtuple) ) {
-                        ret.addToNogood(selector, atm.negate());
-                        //LOGGER.info("..is added to nogood for {} with negative polarity", () -> selector.toString());
-                    }
-                }
-            }
+            // // pass 2: build nogoods for all other selectors that yield this modification
+            // for(final ISymbol atm : interpretation.getInputAtoms()) {
+            //     final ArrayList<ISymbol> atuple = atm.tuple();
+            //     //LOGGER.info("pass 2 input atom {} with tuple {}..", () -> atm.toString(), () -> atuple.toString());
+            //     if( atuple.get(0).equals(delta_pred) ) {
+            //         // same delta predicate, potentially different selector
+            //         final ISymbol selector = atuple.get(1);
+            //         final ArrayList<ISymbol> childtuple = atuple.get(2).tuple();
+            //         if( positiveTuples.contains(childtuple) ) {
+            //             ret.addToNogood(selector, atm);
+            //             //LOGGER.info("..is added to nogood for {} with positive polarity", () -> selector.toString());
+            //         } else if( negativeTuples.contains(childtuple) ) {
+            //             ret.addToNogood(selector, atm.negate());
+            //             //LOGGER.info("..is added to nogood for {} with negative polarity", () -> selector.toString());
+            //         }
+            //     }
+            // }
 
             return ret;
         }
