@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <Appenders>
+    <Console name="CON" target="SYSTEM_ERR">  <!-- where to display -->
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/> <!-- how to display -->
+    </Console>
+  </Appenders>
+  <Loggers>
+    <Root level="warn"> <!-- the log level to display - warn or info or debug -->
+      <AppenderRef ref="CON"/>
+    </Root>
+  </Loggers>
+</Configuration>

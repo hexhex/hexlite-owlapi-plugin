@@ -1,4 +1,4 @@
-#const onto="koala-meta.json".
+#const onto="inputs/koala-meta.json".
 
 % guess symmetric couples
 { couple(A,B) } :- &dlCro[onto,"koala:Animal"](A), &dlCro[onto,"koala:Animal"](B), A < B.
@@ -19,5 +19,4 @@ praise(A') :- &dlSimplifyIRI[onto,A](A'), &dlCro[onto,"koala:Animal"](A), &dlDPr
 
 #show.
 #show pairing/2.
-%#show gender/2.
 #show praise/1.
