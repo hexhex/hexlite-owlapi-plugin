@@ -9,7 +9,7 @@ def main():
 	s.recreate_conda_environment()
 	#s.install_jpype_via_build('v0.7.5')
 	s.install_jpype_via_conda('0.7.5')
-	s.reclone_hexlite('v1.3.0')
+	s.reclone_hexlite('master')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
 	s.build_this_plugin()
