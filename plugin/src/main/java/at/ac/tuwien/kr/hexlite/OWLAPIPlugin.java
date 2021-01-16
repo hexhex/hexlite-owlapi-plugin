@@ -367,17 +367,6 @@ public class OWLAPIPlugin implements IPlugin {
 
         public abstract Answer retrieveDetail(final ISolverContext ctx, final IQuery query, final IOntologyContext moc, final ModificationsContainer modcontainer);
 
-        public void makeAllOutputsTrueForInconsistency(final ISolverContext ctx, final Answer answer) {
-            // uses getInstantiatedOutputAtoms to find all possible outputs this atom can be true for, and makes it true for all these
-            final int oarity = getOutputArguments();
-            for(final ISymbol replacementAtom : ctx.getInstantiatedOutputAtoms() ) {
-                final ArrayList<ISymbol> replacementTuple = replacementAtom.tuple();
-                final ArrayList<ISymbol> tuple = new ArrayList<ISymbol>(
-                    replacementTuple.subList(replacementTuple.size()-oarity, replacementTuple.size()));
-                answer.output(tuple);
-            }
-        }
-
         // the currently relevant modification would be:
         protected ModificationsContainer extractModifications(final IOntologyContext ctx, final ArrayList<ISymbol> primaryQuery, final IInterpretation interpretation) {
             // here we get all relevant input atoms for this ground instantiation
@@ -539,8 +528,10 @@ public class OWLAPIPlugin implements IPlugin {
 
             final Answer answer = new Answer();
             if( !moc.reasoner().isConsistent() ) {
-                // make this atom true (all follows from inconsistency)
-                makeAllOutputsTrueForInconsistency(ctx, answer);
+                // make this atom false
+                // XXX is this a good idea? logic would say it is true
+                // cannot learn because do not know potential output tuples of this external atom
+                //LOGGER.info("result (dlC): inconsistent!");
                 modcon.generateNogoodsForAnswer(ctx, this, query, answer);
                 return answer;
             }
@@ -579,8 +570,10 @@ public class OWLAPIPlugin implements IPlugin {
 
             final Answer answer = new Answer();
             if( !moc.reasoner().isConsistent() ) {
-                // make this atom true (all follows from inconsistency)
-                makeAllOutputsTrueForInconsistency(ctx, answer);
+                // make this atom false
+                // XXX is this a good idea? logic would say it is true
+                // cannot learn because do not know potential output tuples of this external atom
+                // LOGGER.info("result (dlOP): inconsistent");
                 modcon.generateNogoodsForAnswer(ctx, this, query, answer);
                 return answer;
             }
