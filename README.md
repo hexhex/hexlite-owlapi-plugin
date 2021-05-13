@@ -10,8 +10,9 @@ In: New Foundations for Human-Centered AI, Workshop at ECAI 2020.
 
 # Setup
 
-The easiest way is to use conda. In your base environment run
+Before you start you need openjdk-11-jdk and maven.
 
+The easiest way to setup is conda. In your base environment run
 
     $ python3 setup_and_test_within_conda.py <conda-environment>
 
@@ -37,3 +38,6 @@ Be careful:
     conda init powershell
 
   for making the setup work.
+
+* Do NOT use openjdk in conda - it is very old and hangs on shutdown.
+
