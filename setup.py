@@ -39,6 +39,6 @@ setuptools.setup(name='hexlite-owlapi-plugin',
       author_email='contact@peterschueller.com',
       license='MIT',
       install_requires=[
-        'hexlite>=1.4.0',
+        'hexlite==1.4.1',
       ],
       zip_safe=False)

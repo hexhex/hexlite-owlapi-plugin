@@ -8,7 +8,7 @@ def main():
 	s.ensure_java_maven_exists()
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
-	s.install_via_pip('"clingo>=5.5.0" "jpype1>=1.2.1"')
+	s.install_via_pip('clingo==5.5.0.post3 jpype1==1.2.1')
 	s.reclone_hexlite('v1.4.0')
 	s.build_hexlite_java_api()
 	s.install_hexlite()

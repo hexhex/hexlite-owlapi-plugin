@@ -1,1 +1,3 @@
-hexlite==1.0.2
+hexlite==1.4.1
+clingo==5.5.0.post3
+jpype1==1.2.1
