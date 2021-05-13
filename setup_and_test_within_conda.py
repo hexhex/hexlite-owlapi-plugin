@@ -7,9 +7,8 @@ def main():
 	s.interpret_arguments(sys.argv)
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
-	#s.install_jpype_via_build('v0.7.5')
-	s.install_jpype_via_conda('0.7.5')
-	s.reclone_hexlite('master')
+	s.install_via_pip('"clingo>=5.5.0" "jpype1>=1.2.1"')
+	s.reclone_hexlite('clingo-5.5.0')
 	s.build_hexlite_java_api()
 	s.install_hexlite()
 	s.build_this_plugin()
@@ -19,7 +18,7 @@ def main():
 	# or use only jar with dependencies (created by maven-shade-plugin, faster than asking mvn for classpath)
 	# the "./" is for being able to put log4j2.xml into ./
 	cwd = os.getcwd()
-	s.config['classpath'] = '%s/:%s/plugin/target/owlapiplugin-1.0.0-SNAPSHOT.jar' % (cwd, cwd)
+	s.config['classpath'] = '%s/:%s/plugin/target/owlapiplugin-1.1.0.jar' % (cwd, cwd)
 
 	s.run_example('koala', ['querykoala1.hex'])
 	s.run_example('koala', ['querykoala2.hex'])
@@ -67,7 +66,7 @@ class Setup:
 		env = self.config['env']
 		assert(env != 'base')
 		self.__run_shell_get_stdout('conda env remove -y --name %s >&2' % env, allow_fail=True)
-		self.__run_shell_get_stdout('conda create -y --name %s -c potassco clingo python=%s ant maven pandas >&2' % (env, self.PYTHONVER))
+		self.__run_shell_get_stdout('conda create -y --name %s python=%s ant maven pandas >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
 	def install_jpype_via_build(self, github_ref):
@@ -97,6 +96,10 @@ class Setup:
 		if version is not None:
 			ver = '='+version
 		self.__run_shell_get_stdout("source activate %s && conda install -y -c conda-forge jpype1%s >&2" % (env, ver))
+
+	def install_via_pip(self, what='"clingo>=5.5.0" "jpype1>=1.2.1"'):
+		env = self.config['env']
+		self.__run_shell_get_stdout("source activate %s && pip3 install %s >&2" % (env, what))
 
 	def reclone_hexlite(self, github_ref):
 		logging.info('cloning hexlite')
