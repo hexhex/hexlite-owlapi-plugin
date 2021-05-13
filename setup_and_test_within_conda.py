@@ -137,7 +137,8 @@ class Setup:
 		env = self.config['env']
 		cwd = os.getcwd()
 		call = "hexlite --pluginpath %s/hexlite/plugins/ --plugin javaapiplugin at.ac.tuwien.kr.hexlite.OWLAPIPlugin --number 33" % cwd 
-		#call += ' --verbose'
+		# call += ' --verbose'
+		# call += ' --debug'
 		call += ' --stats'
 		#call += ' --noeatomlearn'
 		logging.warning("TODO fix bug in FLP checker (parser?)")

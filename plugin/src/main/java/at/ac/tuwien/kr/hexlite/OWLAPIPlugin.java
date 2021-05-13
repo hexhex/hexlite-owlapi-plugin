@@ -100,22 +100,18 @@ public class OWLAPIPlugin implements IPlugin {
             //properties.setDoInputOutputLearning(false);
         }
 
-        @Override
         public String getPredicate() {
             return predicate;
         }
 
-        @Override
         public ArrayList<InputType> getInputArguments() {
             return inputArguments;
         }
 
-        @Override
         public int getOutputArguments() {
             return outputArguments;
         }
 
-        @Override
         public ExtSourceProperties getExtSourceProperties() {
             return properties;
         }
@@ -628,12 +624,10 @@ public class OWLAPIPlugin implements IPlugin {
         }
     }
 
-    @Override
     public String getName() {
         return "OWLAPIPlugin";
     }
 
-    @Override
     public AbstractCollection<IPluginAtom> createAtoms() {
         final LinkedList<IPluginAtom> atoms = new LinkedList<IPluginAtom>();
         atoms.add(new ClassQueryReadOnlyAtom());
