@@ -5,6 +5,7 @@ import os, sys, logging, subprocess, json, traceback
 def main():
 	s = Setup()
 	s.interpret_arguments(sys.argv)
+	s.ensure_java_maven_exists()
 	s.ensure_conda_exists()
 	s.recreate_conda_environment()
 	s.install_via_pip('"clingo>=5.5.0" "jpype1>=1.2.1"')
@@ -62,11 +63,17 @@ class Setup:
 		ver = self.__run_shell_get_stdout('conda --version')
 		logging.info("found conda version %s", ver)
 
+	def ensure_java_maven_exists(self):
+		ver = self.__run_shell_get_stdout('java --version')
+		logging.info("found java version %s", ver)
+		ver = self.__run_shell_get_stdout('mvn --version')
+		logging.info("found maven version %s", ver)
+
 	def recreate_conda_environment(self):
 		env = self.config['env']
 		assert(env != 'base')
 		self.__run_shell_get_stdout('conda env remove -y --name %s >&2' % env, allow_fail=True)
-		self.__run_shell_get_stdout('conda create -y --name %s python=%s ant maven pandas >&2' % (env, self.PYTHONVER))
+		self.__run_shell_get_stdout('conda create -y --name %s python=%s pandas >&2' % (env, self.PYTHONVER))
 		self.__run_shell_get_stdout('source activate %s' % env)
 
 	def install_jpype_via_build(self, github_ref):
