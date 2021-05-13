@@ -644,5 +644,11 @@ public class OWLAPIPlugin implements IPlugin {
         atoms.add(new ModifiedOntologyObjectPropertyQueryAtom());
         atoms.add(new SimplifyIRIAtom());
         return atoms;        
-	}
+    }
+
+    public void teardown() {
+        for(IOntologyContext ctx : cachedContexts.values()) {
+            ctx.teardown();
+        }
+    }
 }

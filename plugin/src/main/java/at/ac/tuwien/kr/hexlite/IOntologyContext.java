@@ -17,5 +17,6 @@ interface IOntologyContext {
    public String simplifyNamespaceIfPossible(String value);
    public void applyChanges(List<? extends OWLOntologyChange> changes);
    public void revertChanges(List<? extends OWLOntologyChange> changes);
+   public void teardown();
 }
 

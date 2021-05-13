@@ -172,4 +172,9 @@ class OntologyContext implements IOntologyContext {
         // synchronize reasoner
         if( _reasoner != null ) _reasoner.flush();
     }
+
+    public void teardown() {
+        if( _reasoner != null )
+            _reasoner.dispose();
+    }
 }
